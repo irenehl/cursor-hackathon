@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
@@ -25,9 +26,9 @@ const AVATAR_COLORS = [
 ]
 
 export function OnboardingGate({ children }: OnboardingGateProps) {
-  const { user, session, profile, loading, signInWithEmail, signInAnonymously, refreshProfile } = useAuth()
-  const [email, setEmail] = useState('')
-  const [emailSent, setEmailSent] = useState(false)
+  const pathname = usePathname()
+  const router = useRouter()
+  const { user, session, profile, loading, refreshProfile } = useAuth()
   const [displayName, setDisplayName] = useState('')
   const [avatarId, setAvatarId] = useState<number>(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -38,6 +39,11 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
     supabase.auth.getSession()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Bypass auth gate for landing page and auth page
+  if (pathname === '/' || pathname === '/auth') {
+    return <>{children}</>
+  }
 
   // If loading, show loading spinner
   if (loading) {
@@ -51,104 +57,10 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
     )
   }
 
-  // If not authenticated, show auth options
+  // If not authenticated, redirect to auth page
   if (!user || !session) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-          <div className="text-center mb-6">
-            <div className="text-4xl mb-4">👋</div>
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-text">
-              Welcome to 2D Events
-            </h1>
-            <p className="text-text-muted text-sm">
-              Where professional events meet playful 2D avatars
-            </p>
-          </div>
-          
-          {!emailSent ? (
-            <div className="space-y-4">
-              <Input
-                id="email"
-                label="Email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-              />
-
-              <Button
-                onClick={async () => {
-                  if (!email) {
-                    toast.error('Please enter your email')
-                    return
-                  }
-                  setIsSubmitting(true)
-                  const { error } = await signInWithEmail(email)
-                  setIsSubmitting(false)
-                  if (error) {
-                    toast.error(error.message || 'Failed to send magic link')
-                  } else {
-                    setEmailSent(true)
-                    toast.success('Check your email for the magic link!')
-                  }
-                }}
-                disabled={isSubmitting}
-                className="w-full"
-                variant="primary"
-              >
-                {isSubmitting ? 'Sending magic link...' : 'Send Magic Link'}
-              </Button>
-
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="bg-surface px-2 text-text-muted">OR</span>
-                </div>
-              </div>
-
-              <Button
-                onClick={async () => {
-                  setIsSubmitting(true)
-                  const { error } = await signInAnonymously()
-                  setIsSubmitting(false)
-                  if (error) {
-                    toast.error(error.message || 'Failed to sign in anonymously')
-                  }
-                }}
-                disabled={isSubmitting}
-                className="w-full"
-                variant="secondary"
-              >
-                {isSubmitting ? 'Signing in...' : 'Continue Anonymously'}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4 text-center">
-              <div className="text-3xl mb-4">✉️</div>
-              <p className="text-text-muted">
-                We sent a magic link to <strong className="text-text">{email}</strong>
-              </p>
-              <p className="text-sm text-text-muted">
-                Click the link in your email to sign in. You can close this window.
-              </p>
-              <Button
-                onClick={() => {
-                  setEmailSent(false)
-                  setEmail('')
-                }}
-                className="w-full"
-                variant="ghost"
-              >
-                Use a different email
-              </Button>
-            </div>
-          )}
-        </Card>
-      </div>
-    )
+    router.push('/auth')
+    return null
   }
 
   // If authenticated but no profile, show profile setup

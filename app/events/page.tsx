@@ -83,7 +83,7 @@ export default function EventsPage() {
               </p>
             </div>
             <Button variant="ghost" asChild>
-              <Link href="/">← Home</Link>
+              <Link href="/home">← Home</Link>
             </Button>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -200,7 +200,7 @@ export default function EventsPage() {
                     icon="🎪"
                     action={
                       <Button variant="primary" asChild>
-                        <Link href="/">Create Event + Tickets</Link>
+                        <Link href="/home">Create Event + Tickets</Link>
                       </Button>
                     }
                   />
