@@ -31,10 +31,10 @@ todos:
     status: completed
   - id: pvp-flow
     content: Implement proximity detect, challenge/accept UI, freeze+fight animation, and consume server-resolved winner.
-    status: pending
+    status: completed
   - id: moderation-flow
     content: "Implement kick/ban receipt handling: teleport corner, hat overlay, freeze/expel, and join_event ban enforcement."
-    status: pending
+    status: completed
 isProject: false
 ---
 

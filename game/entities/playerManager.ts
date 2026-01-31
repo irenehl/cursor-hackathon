@@ -104,6 +104,17 @@ export class PlayerManager {
     }
   }
 
+  setPvpState(userId: string, state: import('./player').PvpState, durationMs?: number): void {
+    if (userId === this.localPlayer?.getUserId()) {
+      this.localPlayer.setPvpState(state, durationMs)
+    } else {
+      const player = this.remotePlayers.get(userId)
+      if (player) {
+        player.setPvpState(state, durationMs)
+      }
+    }
+  }
+
   update(deltaTime: number): PlayerState | null {
     // Update local player
     if (this.localPlayer) {

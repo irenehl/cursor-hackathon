@@ -70,6 +70,14 @@ export class LocalPlayer extends Player {
       return this.getState()
     }
 
+    // Update fight animation
+    this.updateFightAnimation(deltaTime)
+
+    // Don't update position if frozen (check PvP state)
+    if (this.isFrozen()) {
+      return this.getState()
+    }
+
     const state = this.getState()
     const deltaSeconds = deltaTime / 60 // Assuming 60 FPS base
     const moveX = this.velocity.x * this.speed * deltaSeconds
@@ -90,5 +98,36 @@ export class LocalPlayer extends Player {
 
   getVelocity(): { x: number; y: number } {
     return { ...this.velocity }
+  }
+
+  /**
+   * Teleport player to punishment corner
+   */
+  teleportToCorner(): void {
+    if (!this.map) return
+    
+    const corner = this.map.getPunishmentCorner()
+    // Center of the corner
+    const cornerX = corner.x + corner.width / 2
+    const cornerY = corner.y + corner.height / 2
+    
+    this.updatePosition(cornerX, cornerY)
+  }
+
+  /**
+   * Freeze player movement for specified duration (in milliseconds)
+   */
+  freeze(durationMs: number): void {
+    this.setPvpState('frozen', durationMs)
+    // Clear velocity to stop movement immediately
+    this.velocity.x = 0
+    this.velocity.y = 0
+  }
+
+  /**
+   * Check if player is currently frozen
+   */
+  getIsFrozen(): boolean {
+    return this.isFrozen()
   }
 }

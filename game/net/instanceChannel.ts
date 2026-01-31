@@ -355,6 +355,13 @@ export class InstanceChannel {
   }
 
   /**
+   * Get presence state (for getting display names, etc.)
+   */
+  getPresenceState(): Map<string, PlayerState> {
+    return this.presenceState
+  }
+
+  /**
    * Update remote player interpolation (call from game loop)
    * @param deltaTime Time since last frame in seconds
    */

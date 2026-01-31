@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { PixiAppManager } from '@/game/engine/pixiApp'
 import { GameMap } from '@/game/world/map'
@@ -9,6 +9,10 @@ import { LocalPlayer } from '@/game/entities/localPlayer'
 import { Container } from 'pixi.js'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { InstanceChannel } from '@/game/net/instanceChannel'
+import { PvpManager } from '@/game/entities/pvpManager'
+import { createPvpDuel, acceptPvpAndResolve } from '@/lib/supabase/rpc'
+import { PvpUi } from '@/components/game/pvp-ui'
 
 export default function SessionPage() {
   const params = useParams()
@@ -20,9 +24,60 @@ export default function SessionPage() {
   const gameMapRef = useRef<GameMap | null>(null)
   const playerManagerRef = useRef<PlayerManager | null>(null)
   const localPlayerRef = useRef<LocalPlayer | null>(null)
+  const instanceChannelRef = useRef<InstanceChannel | null>(null)
+  const pvpManagerRef = useRef<PvpManager | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [nearbyPlayer, setNearbyPlayer] = useState<{ userId: string; displayName: string } | null>(null)
+  const [challengeReceived, setChallengeReceived] = useState<{ duelId: string; fromUserId: string; fromDisplayName: string } | null>(null)
   const positionBroadcastIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const presenceUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const proximityCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // PvP handlers (using useCallback to create stable references)
+  const handleChallenge = useCallback(async (opponentId: string) => {
+    if (!pvpManagerRef.current || !localPlayerRef.current) return
+
+    try {
+      const result = await createPvpDuel(sessionId, opponentId)
+      const challenge = {
+        duelId: result.duel_id,
+        fromUserId: localPlayerRef.current.getUserId(),
+        toUserId: opponentId,
+      }
+      pvpManagerRef.current.setPendingChallenge(challenge)
+      setNearbyPlayer(null) // Hide challenge button
+    } catch (error: any) {
+      toast.error('Error al desafiar: ' + (error.message || 'Error desconocido'))
+      console.error('Challenge error:', error)
+    }
+  }, [sessionId])
+
+  const handleAcceptChallenge = useCallback(async (duelId: string) => {
+    if (!pvpManagerRef.current || !localPlayerRef.current) return
+
+    try {
+      // Accept and resolve duel (server will broadcast pvp_resolved)
+      await acceptPvpAndResolve(duelId)
+      
+      // Clear challenge UI
+      pvpManagerRef.current.handleChallengeAccepted(duelId)
+      setChallengeReceived(null)
+
+      // The pvp_resolved handler will handle freeze + animation + winner/loser states
+    } catch (error: any) {
+      toast.error('Error al aceptar: ' + (error.message || 'Error desconocido'))
+      console.error('Accept challenge error:', error)
+      setChallengeReceived(null)
+      pvpManagerRef.current.clearChallenge()
+    }
+  }, [])
+
+  const handleRejectChallenge = useCallback(() => {
+    if (!pvpManagerRef.current) return
+    setChallengeReceived(null)
+    pvpManagerRef.current.clearChallenge()
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -132,17 +187,269 @@ export default function SessionPage() {
 
         localPlayerRef.current = localPlayer
 
+        // Set up Realtime channel for presence and broadcasts
+        const instanceChannel = new InstanceChannel(
+          eventId,
+          sessionId,
+          user.id,
+          profile.display_name || 'Player',
+          avatarId
+        )
+
+        // Create PvP manager
+        const pvpManager = new PvpManager()
+        pvpManagerRef.current = pvpManager
+
+        // Handle PvP challenge received
+        pvpManager.onChallengeReceived((challenge) => {
+          // Get challenger display name from presence
+          const presenceState = instanceChannel.getPresenceState()
+          const challengerPresence = presenceState.get(challenge.fromUserId)
+          const challengerDisplayName = challengerPresence?.displayName || 'Unknown'
+          
+          setChallengeReceived({
+            duelId: challenge.duelId,
+            fromUserId: challenge.fromUserId,
+            fromDisplayName: challengerDisplayName,
+          })
+        })
+
+        // Handle challenge accepted (local player accepted)
+        pvpManager.onChallengeAccepted((duelId) => {
+          // Freeze both players and start fight animation
+          if (localPlayerRef.current) {
+            localPlayerRef.current.setPvpState('fighting')
+          }
+          // Remote player will be frozen when they receive pvp_resolved
+        })
+
+        // Handle duel resolved
+        pvpManager.onDuelResolved((duel) => {
+          const isWinner = duel.winnerId === user.id
+          const isLoser = duel.loserId === user.id
+
+          if (isWinner || isLoser) {
+            // Freeze for 1-2 seconds, then show fight animation
+            if (localPlayerRef.current) {
+              localPlayerRef.current.setPvpState('frozen', 1500) // Freeze for 1.5 seconds
+            }
+
+            // After freeze, show fight animation, then winner/loser state
+            setTimeout(() => {
+              if (!mounted || !localPlayerRef.current) return
+
+              // Start fight animation
+              localPlayerRef.current.setPvpState('fighting')
+
+              // After fight animation (~600ms), show winner/loser state
+              setTimeout(() => {
+                if (!mounted || !localPlayerRef.current) return
+
+                if (isWinner) {
+                  localPlayerRef.current.setPvpState('winner')
+                  toast.success('¡Ganaste el duelo!')
+                  // Reset after 3 seconds
+                  setTimeout(() => {
+                    if (localPlayerRef.current) {
+                      localPlayerRef.current.setPvpState('idle')
+                    }
+                    pvpManager.clearDuel()
+                  }, 3000)
+                } else if (isLoser) {
+                  localPlayerRef.current.setPvpState('loser')
+                  toast.error('Perdiste el duelo')
+                  // Reset after 3 seconds
+                  setTimeout(() => {
+                    if (localPlayerRef.current) {
+                      localPlayerRef.current.setPvpState('idle')
+                    }
+                    pvpManager.clearDuel()
+                  }, 3000)
+                }
+              }, 600) // Fight animation duration
+            }, 1500) // After freeze
+          }
+        })
+
+        // Handle server broadcasts (penalty, hand_granted, pvp events)
+        instanceChannel.onServerBroadcast((event, payload) => {
+          if (event === 'penalty') {
+            handlePenalty(payload, user.id)
+          } else if (event === 'pvp_challenge') {
+            // Handle incoming challenge
+            const challenge = {
+              duelId: payload.duelId,
+              fromUserId: payload.fromUserId,
+              toUserId: payload.toUserId,
+            }
+            pvpManager.handleChallengeReceived(challenge, user.id)
+          } else if (event === 'pvp_resolved') {
+            // Handle duel resolution
+            // Get challenger/opponent from active duel or challenge
+            const activeDuel = pvpManager.getActiveDuel()
+            const activeChallenge = pvpManager.getActiveChallenge()
+            const pendingChallenge = pvpManager.getPendingChallenge()
+            
+            // Determine challenger/opponent IDs
+            let challengerId = user.id
+            let opponentId = user.id
+            if (activeChallenge) {
+              challengerId = activeChallenge.fromUserId
+              opponentId = activeChallenge.toUserId
+            } else if (pendingChallenge) {
+              challengerId = pendingChallenge.fromUserId
+              opponentId = pendingChallenge.toUserId
+            }
+            
+            const duel = {
+              duelId: payload.duelId,
+              challengerId,
+              opponentId,
+              status: 'resolved' as const,
+              winnerId: payload.winnerId,
+              loserId: payload.loserId,
+            }
+            pvpManager.handleDuelResolved(duel)
+            
+            // Also update remote player states
+            if (playerManagerRef.current) {
+              if (payload.winnerId && payload.winnerId !== user.id) {
+                playerManagerRef.current.setPvpState(payload.winnerId, 'winner')
+                setTimeout(() => {
+                  if (playerManagerRef.current) {
+                    playerManagerRef.current.setPvpState(payload.winnerId, 'idle')
+                  }
+                }, 3000)
+              }
+              if (payload.loserId && payload.loserId !== user.id) {
+                playerManagerRef.current.setPvpState(payload.loserId, 'loser')
+                setTimeout(() => {
+                  if (playerManagerRef.current) {
+                    playerManagerRef.current.setPvpState(payload.loserId, 'idle')
+                  }
+                }, 3000)
+              }
+            }
+          }
+        })
+
+        // Subscribe to channel
+        await instanceChannel.subscribe()
+        instanceChannelRef.current = instanceChannel
+
+        // Start position broadcasting
+        instanceChannel.startPositionBroadcast()
+
+        // Update position in channel when player moves
+        const positionUpdateInterval = setInterval(() => {
+          if (localPlayerRef.current && mounted) {
+            const state = localPlayerRef.current.getState()
+            instanceChannel.updatePosition(state.x, state.y, state.dir)
+          }
+        }, 100) // ~10 Hz
+
+        // Also update presence occasionally (less frequently than position updates)
+        presenceUpdateIntervalRef.current = setInterval(async () => {
+          if (localPlayerRef.current && mounted && instanceChannelRef.current) {
+            const state = localPlayerRef.current.getState()
+            await instanceChannelRef.current.trackPresence(state.x, state.y, state.dir)
+          }
+        }, 1000) // ~1 Hz for presence updates
+
+        positionBroadcastIntervalRef.current = positionUpdateInterval
+
+        // Set up proximity checking
+        proximityCheckIntervalRef.current = setInterval(() => {
+          if (!mounted || !localPlayerRef.current || !instanceChannelRef.current || !pvpManagerRef.current) {
+            return
+          }
+
+          const localState = localPlayerRef.current.getState()
+          const remotePlayers = instanceChannelRef.current.getRemotePlayers()
+          
+          // Convert remote players to array for proximity check
+          const playerPositions = Array.from(remotePlayers.values()).map((rp) => ({
+            userId: rp.userId,
+            displayName: rp.displayName,
+            x: rp.currentX,
+            y: rp.currentY,
+          }))
+
+          // Find nearby players
+          const nearby = pvpManagerRef.current.findNearbyPlayers(
+            localState.x,
+            localState.y,
+            playerPositions
+          )
+
+          // Set nearest player (if any)
+          if (nearby.length > 0 && !challengeReceived) {
+            const nearest = nearby[0]
+            setNearbyPlayer({
+              userId: nearest.userId,
+              displayName: nearest.displayName,
+            })
+          } else {
+            setNearbyPlayer(null)
+          }
+
+          // Update remote players in player manager
+          for (const [userId, remoteState] of remotePlayers.entries()) {
+            const existingPlayer = playerManagerRef.current?.getRemotePlayer(userId)
+            if (!existingPlayer) {
+              // Create remote player if doesn't exist
+              const presenceState = instanceChannelRef.current.getRemotePlayers()
+              const presence = presenceState.get(userId)
+              if (presence) {
+                const avatarPath = `/assets/avatars/avatar-${presence.avatarId}.png`
+                playerManagerRef.current?.createRemotePlayer(
+                  {
+                    userId: presence.userId,
+                    displayName: presence.displayName,
+                    avatarId: presence.avatarId,
+                  },
+                  {
+                    userId: presence.userId,
+                    displayName: presence.displayName,
+                    avatarId: presence.avatarId,
+                    x: presence.currentX,
+                    y: presence.currentY,
+                    dir: presence.currentDir,
+                  },
+                  avatarPath
+                )
+              }
+            } else {
+              // Update existing remote player
+              playerManagerRef.current?.updateRemotePlayer(
+                userId,
+                {
+                  userId: remoteState.userId,
+                  displayName: remoteState.displayName,
+                  avatarId: remoteState.avatarId,
+                  x: remoteState.currentX,
+                  y: remoteState.currentY,
+                  dir: remoteState.currentDir,
+                },
+                0 // deltaTime not needed for position updates
+              )
+            }
+          }
+        }, 100) // Check proximity every 100ms
+
         // Set up game loop
         const ticker = pixiApp.getTicker()
         ticker.add(() => {
           if (!mounted) return
 
+          // Update remote player interpolation
+          if (instanceChannelRef.current) {
+            instanceChannelRef.current.updateRemoteInterpolation(ticker.deltaTime)
+          }
+
           // Update local player - deltaTime is normalized (1 = 60fps)
           const deltaTime = ticker.deltaTime
           const state = playerManager.update(deltaTime)
-          
-          // Broadcast position updates (10-15 Hz = every 66-100ms)
-          // We'll handle this in a separate interval below
         })
 
         // Set up keyboard controls
@@ -176,17 +483,75 @@ export default function SessionPage() {
         }
         window.addEventListener('resize', handleResize)
 
-        // Set up position broadcasting (10-15 Hz)
-        positionBroadcastIntervalRef.current = setInterval(() => {
-          if (localPlayerRef.current && mounted) {
-            const state = localPlayerRef.current.getState()
-            // TODO: Broadcast position via Realtime (will be implemented in realtime-presence-broadcast todo)
-            // For now, just log it
-            console.log('Position update:', state)
-          }
-        }, 100) // ~10 Hz
-
         setIsLoading(false)
+
+        // Handle penalty events (kick/ban)
+        function handlePenalty(payload: any, currentUserId: string) {
+          if (!mounted || !localPlayerRef.current || !gameMapRef.current) return
+
+          const { userId, type, until } = payload
+
+          // Only handle penalties for the current user
+          if (userId !== currentUserId) {
+            return
+          }
+
+          const localPlayer = localPlayerRef.current
+          const gameMap = gameMapRef.current
+
+          if (type === 'kick') {
+            // Teleport to punishment corner
+            localPlayer.teleportToCorner()
+
+            // Show hat overlay
+            localPlayer.setHatVisible(true)
+
+            // Calculate freeze duration (until timestamp - now)
+            const untilDate = new Date(until)
+            const now = new Date()
+            const durationMs = Math.max(0, untilDate.getTime() - now.getTime())
+
+            // Freeze player
+            localPlayer.freeze(durationMs)
+
+            toast.error('Has sido expulsado temporalmente', {
+              description: `Puedes volver en ${Math.ceil(durationMs / 1000)} segundos`,
+            })
+
+            // Remove hat and unfreeze when duration expires
+            setTimeout(() => {
+              if (localPlayerRef.current) {
+                localPlayerRef.current.setHatVisible(false)
+              }
+            }, durationMs)
+          } else if (type === 'ban') {
+            // Teleport to punishment corner
+            localPlayer.teleportToCorner()
+
+            // Show hat overlay
+            localPlayer.setHatVisible(true)
+
+            // Play short animation (visual feedback)
+            // For now, we'll just show a toast and then disconnect
+            toast.error('Has sido baneado de este evento', {
+              description: 'Serás desconectado...',
+            })
+
+            // Short delay for animation, then disconnect
+            setTimeout(() => {
+              if (!mounted) return
+
+              // Unsubscribe from channel
+              if (instanceChannelRef.current) {
+                instanceChannelRef.current.unsubscribe()
+              }
+
+              // Route away from session
+              router.push('/events')
+            }, 2000) // 2 second animation delay
+          }
+        }
+
 
         // Cleanup function
         return () => {
@@ -196,6 +561,15 @@ export default function SessionPage() {
           window.removeEventListener('resize', handleResize)
           if (positionBroadcastIntervalRef.current) {
             clearInterval(positionBroadcastIntervalRef.current)
+          }
+          if (presenceUpdateIntervalRef.current) {
+            clearInterval(presenceUpdateIntervalRef.current)
+          }
+          if (proximityCheckIntervalRef.current) {
+            clearInterval(proximityCheckIntervalRef.current)
+          }
+          if (instanceChannelRef.current) {
+            instanceChannelRef.current.unsubscribe()
           }
           if (pixiAppRef.current) {
             pixiAppRef.current.destroy()
@@ -247,6 +621,13 @@ export default function SessionPage() {
       <div className="absolute top-4 left-4 text-white bg-black bg-opacity-50 p-2 rounded text-sm">
         <div>Use WASD or Arrow Keys to move</div>
       </div>
+      <PvpUi
+        nearbyPlayer={nearbyPlayer}
+        onChallenge={handleChallenge}
+        challengeReceived={challengeReceived}
+        onAcceptChallenge={handleAcceptChallenge}
+        onRejectChallenge={handleRejectChallenge}
+      />
     </main>
   )
 }

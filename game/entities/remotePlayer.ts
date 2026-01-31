@@ -22,6 +22,14 @@ export class RemotePlayer extends Player {
   }
 
   update(deltaTime: number): void {
+    // Update fight animation
+    this.updateFightAnimation(deltaTime)
+
+    // Don't interpolate if frozen
+    if (this.isFrozen()) {
+      return
+    }
+
     if (!this.previousState) {
       // No interpolation data yet, use current state directly
       this.updatePosition(this.currentState.x, this.currentState.y)

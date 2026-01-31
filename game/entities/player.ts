@@ -16,6 +16,8 @@ export interface PlayerConfig {
   isLocal?: boolean
 }
 
+export type PvpState = 'idle' | 'frozen' | 'fighting' | 'winner' | 'loser'
+
 export class Player {
   private container: Container
   private sprite: Sprite | null = null
@@ -24,6 +26,10 @@ export class Player {
   private config: PlayerConfig
   private state: PlayerState
   private avatarTexture: Texture | null = null
+  private pvpState: PvpState = 'idle'
+  private freezeEndTime: number = 0
+  private fightAnimationFrame: number = 0
+  private fightAnimationStartTime: number = 0
 
   constructor(container: Container, config: PlayerConfig, initialState: PlayerState) {
     this.container = container
@@ -159,6 +165,90 @@ export class Player {
 
   getContainer(): Container {
     return this.container
+  }
+
+  /**
+   * Set PvP state (frozen, fighting, winner, loser)
+   */
+  setPvpState(state: PvpState, durationMs?: number): void {
+    this.pvpState = state
+    
+    if (state === 'frozen' && durationMs) {
+      this.freezeEndTime = Date.now() + durationMs
+    } else if (state === 'fighting') {
+      this.fightAnimationStartTime = Date.now()
+      this.fightAnimationFrame = 0
+    } else {
+      this.freezeEndTime = 0
+      this.fightAnimationFrame = 0
+    }
+  }
+
+  /**
+   * Get current PvP state
+   */
+  getPvpState(): PvpState {
+    return this.pvpState
+  }
+
+  /**
+   * Check if player is frozen
+   */
+  isFrozen(): boolean {
+    if (this.pvpState === 'frozen') {
+      if (Date.now() >= this.freezeEndTime) {
+        this.pvpState = 'idle'
+        return false
+      }
+      return true
+    }
+    return false
+  }
+
+  /**
+   * Update fight animation (call from game loop)
+   */
+  updateFightAnimation(deltaTime: number): void {
+    if (this.pvpState === 'fighting') {
+      const elapsed = Date.now() - this.fightAnimationStartTime
+      const frameDuration = 200 // 200ms per frame (2-4 frames = 400-800ms)
+      this.fightAnimationFrame = Math.floor(elapsed / frameDuration)
+      
+      // Animate sprite scale for fight effect
+      if (this.sprite) {
+        const pulse = Math.sin((elapsed / 100) * Math.PI) * 0.1
+        this.sprite.scale.set(1 + pulse, 1 + pulse)
+      }
+
+      // End fight animation after ~600ms (3 frames)
+      if (elapsed >= 600) {
+        this.fightAnimationFrame = 0
+        if (this.sprite) {
+          this.sprite.scale.set(1, 1)
+        }
+      }
+    } else if (this.pvpState === 'winner') {
+      // Winner pose: slight scale up and rotation
+      if (this.sprite) {
+        this.sprite.scale.set(1.2, 1.2)
+        this.sprite.rotation = Math.sin(Date.now() / 200) * 0.1
+      }
+    } else if (this.pvpState === 'loser') {
+      // Loser stun: scale down and slight rotation
+      if (this.sprite) {
+        this.sprite.scale.set(0.8, 0.8)
+        this.sprite.rotation = Math.sin(Date.now() / 300) * 0.2
+        // Tint red for stun effect
+        this.sprite.tint = 0xff6666
+      }
+    } else {
+      // Reset to normal
+      if (this.sprite) {
+        this.sprite.scale.set(1, 1)
+        this.sprite.rotation = 0
+        this.sprite.tint = 0xffffff
+      }
+    }
   }
 
   destroy(): void {
