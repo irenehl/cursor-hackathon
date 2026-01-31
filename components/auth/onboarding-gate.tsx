@@ -169,7 +169,16 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
                   )
 
                 if (error) {
-                  toast.error(error.message || 'Failed to save profile')
+                  const isFkViolation =
+                    error.code === '23503' ||
+                    error.message?.includes('profiles_user_id_fkey')
+                  if (isFkViolation) {
+                    toast.error(
+                      'Your session may be out of date. Please sign out and sign in again, then save your profile.'
+                    )
+                  } else {
+                    toast.error(error.message || 'Failed to save profile')
+                  }
                 } else {
                   await refreshProfile()
                   toast.success('Profile saved! Welcome to the 2D realm.')
