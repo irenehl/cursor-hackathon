@@ -27,7 +27,7 @@ CREATE POLICY "events_insert_host_not_anon"
 -- This is a placeholder - in production, use a real admin user
 DO $$
 DECLARE
-  v_test_event_id UUID := 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee2';
+  v_test_event_id UUID := 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeee2';
   v_host_user_id UUID;
 BEGIN
   -- Check if test event already exists
