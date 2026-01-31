@@ -4,7 +4,7 @@ overview: Build a greenfield Next.js (React) web client with an embedded PixiJS 
 todos:
   - id: init-nextjs
     content: Initialize Next.js (App Router) project and dependencies (supabase-js, PixiJS, UI/toast, typing/lint).
-    status: pending
+    status: completed
   - id: supabase-schema
     content: Create Supabase migrations for tables, indexes, and RLS (profiles/events/tickets/sessions/hand_queue/penalties/pvp_duels).
     status: pending
