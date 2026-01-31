@@ -8,6 +8,7 @@ interface Profile {
   user_id: string
   display_name: string
   avatar_id: number
+  character_type: string
 }
 
 interface AuthContextType {
@@ -53,25 +54,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // #endregion
 
   const fetchProfile = async (userId: string) => {
-    // #region agent log
-    DEBUG_LOG({ hypothesisId: 'H1', location: 'auth-context:fetchProfile:entry', message: 'fetchProfile start', data: { userId } })
-    // #endregion
     const { data, error } = await supabase
       .from('profiles')
-      .select('user_id, display_name, avatar_id')
+      .select('user_id, display_name, avatar_id, character_type')
       .eq('user_id', userId)
       .single()
-
-    // #region agent log
-    if (error) DEBUG_LOG({ hypothesisId: 'H1', location: 'auth-context:fetchProfile:error', message: 'fetchProfile error', data: { code: error.code, message: error.message } })
-    else DEBUG_LOG({ hypothesisId: 'H1', location: 'auth-context:fetchProfile:ok', message: 'fetchProfile ok', data: {} })
-    // #endregion
     if (error && error.code !== 'PGRST116') {
       console.error('Error fetching profile:', error)
+      // If character_type column doesn't exist (PostgreSQL error 42703), try fetching without it
+      if (error.message?.includes('character_type') || error.code === '42703' || error.message?.includes('column') && error.message?.includes('does not exist')) {
+        console.warn('character_type column not found, fetching profile without it. Please run migration 0005_character_type.sql')
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, avatar_id')
+          .eq('user_id', userId)
+          .single()
+        
+        if (fallbackError && fallbackError.code !== 'PGRST116') {
+          console.error('Error fetching profile (fallback):', fallbackError)
+          return null
+        }
+        
+        // Return data with default character_type
+        return fallbackData ? { ...fallbackData, character_type: 'default' } : null
+      }
       return null
     }
 
-    return data
+    // Ensure character_type has a default value if missing
+    return data ? { ...data, character_type: data.character_type || 'default' } : null
   }
 
   const refreshProfile = useCallback(async () => {
