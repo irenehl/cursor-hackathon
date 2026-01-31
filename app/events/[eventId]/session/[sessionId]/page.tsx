@@ -193,10 +193,37 @@ export default function SessionPage() {
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:before loadMap', message: 'before gameMap.loadMap', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
         // #endregion
-        await gameMap.loadMap() // Load without texture for now (will use fallback)
+        
+        // Generate tilemap data and load with tilemap system
+        const tilemapData = gameMap.generateDefaultTilemap()
+        await gameMap.loadMap(undefined, tilemapData)
+        
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:after loadMap', message: 'after gameMap.loadMap', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
         // #endregion
+        
+        // Add some decorative objects to make the map more interesting
+        // Place a few houses and tents randomly
+        const objectPositions = [
+          { id: 'house1', x: 200, y: 150 },
+          { id: 'house2', x: 400, y: 200 },
+          { id: 'tent1', x: 600, y: 300 },
+          { id: 'tent2', x: 800, y: 250 },
+          { id: 'stone1', x: 300, y: 500 },
+          { id: 'stone2', x: 700, y: 600 },
+          { id: 'grass1', x: 150, y: 400 },
+          { id: 'grass2', x: 500, y: 450 },
+          { id: 'grass3', x: 900, y: 500 },
+        ]
+        
+        for (const obj of objectPositions) {
+          await gameMap.placeObject({
+            objectId: obj.id,
+            x: obj.x,
+            y: obj.y,
+          })
+        }
+        
         gameMapRef.current = gameMap
 
         // Create player manager
