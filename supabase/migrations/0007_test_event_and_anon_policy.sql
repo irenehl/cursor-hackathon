@@ -27,7 +27,7 @@ CREATE POLICY "events_insert_host_not_anon"
 -- This is a placeholder - in production, use a real admin user
 DO $$
 DECLARE
-  v_test_event_id UUID := 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+  v_test_event_id UUID := 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee2';
   v_host_user_id UUID;
 BEGIN
   -- Check if test event already exists
@@ -58,7 +58,7 @@ BEGIN
     visibility
   ) VALUES (
     v_test_event_id,
-    'Anon Test Event - Join Me!',
+    'Anon Test Event - Join Me! 2',
     now() + interval '1 year',  -- Far in the future so it's always available
     480,  -- 8 hours
     1000,
@@ -70,13 +70,33 @@ BEGIN
   -- Create some public tickets for the test event
   INSERT INTO tickets (code, event_id, is_public)
   VALUES 
-    ('TEST-ANON-0001', v_test_event_id, true),
-    ('TEST-ANON-0002', v_test_event_id, true),
-    ('TEST-ANON-0003', v_test_event_id, true),
-    ('TEST-ANON-0004', v_test_event_id, true),
-    ('TEST-ANON-0005', v_test_event_id, true),
-    ('TEST-PRIVATE-001', v_test_event_id, false),
-    ('TEST-PRIVATE-002', v_test_event_id, false);
+    ('TEST-ANON-0001', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0002', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0003', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0004', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0005', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0006', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0007', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0008', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0009', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0010', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0011', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0012', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0013', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0014', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0015', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0016', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0017', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0018', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0019', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0020', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0021', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0022', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0023', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0024', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-ANON-0025', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', true),
+    ('TEST-PRIVATE-001', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', false),
+    ('TEST-PRIVATE-002', '44d5e4eb-0c77-48ed-8594-2ca42cfd46f1', false);
 
   RAISE NOTICE 'Test event created with ID: %', v_test_event_id;
 END $$;
