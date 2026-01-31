@@ -143,16 +143,14 @@ export class InstanceChannel {
     )
 
     // Subscribe to the channel
-    const status = await this.channel.subscribe(async (status) => {
+    await this.channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
         // Track initial presence
         await this.trackPresence(0, 0, 0)
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        throw new Error(`Failed to subscribe to channel: ${status}`)
       }
     })
-
-    if (status !== 'SUBSCRIBED') {
-      throw new Error(`Failed to subscribe to channel: ${status}`)
-    }
   }
 
   /**
@@ -237,8 +235,12 @@ export class InstanceChannel {
 
     for (const [userId, presences] of Object.entries(presence)) {
       if (Array.isArray(presences) && presences.length > 0) {
-        const state = presences[0] as PlayerState
-        this.presenceState.set(userId, state)
+        const presenceData = presences[0] as any
+        // Extract PlayerState, excluding presence_ref
+        const { presence_ref, ...state } = presenceData
+        if (state.userId && state.displayName !== undefined) {
+          this.presenceState.set(userId, state as PlayerState)
+        }
       }
     }
 
@@ -255,20 +257,23 @@ export class InstanceChannel {
     newPresences: Array<{ [key: string]: any }>
   ): void {
     for (const presence of newPresences) {
-      const state = presence as PlayerState
-      this.presenceState.set(key, state)
+      // Extract PlayerState, excluding presence_ref
+      const { presence_ref, ...state } = presence
+      if (state.userId && state.displayName !== undefined) {
+        this.presenceState.set(key, state as PlayerState)
 
-      // Initialize remote player state for interpolation
-      if (key !== this.userId) {
-        this.remotePlayers.set(key, {
-          userId: key,
-          displayName: state.displayName,
-          avatarId: state.avatarId,
-          states: [null, null],
-          currentX: state.x,
-          currentY: state.y,
-          currentDir: state.dir,
-        })
+        // Initialize remote player state for interpolation
+        if (key !== this.userId) {
+          this.remotePlayers.set(key, {
+            userId: key,
+            displayName: state.displayName,
+            avatarId: state.avatarId,
+            states: [null, null],
+            currentX: state.x,
+            currentY: state.y,
+            currentDir: state.dir,
+          })
+        }
       }
     }
 

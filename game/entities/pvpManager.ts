@@ -44,11 +44,11 @@ export class PvpManager {
   /**
    * Find nearby players from a list of player positions
    */
-  findNearbyPlayers(
+  findNearbyPlayers<T extends { userId: string; x: number; y: number }>(
     localX: number,
     localY: number,
-    players: Array<{ userId: string; x: number; y: number }>
-  ): Array<{ userId: string; x: number; y: number; distance: number }> {
+    players: Array<T>
+  ): Array<T & { distance: number }> {
     return players
       .map((player) => {
         const dx = player.x - localX
