@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
 
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return data
   }
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (!user) {
       setProfile(null)
       return
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const profileData = await fetchProfile(user.id)
     setProfile(profileData)
-  }
+  }, [user])
 
   useEffect(() => {
     // Get initial session
@@ -68,16 +68,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
+      // Set loading to false IMMEDIATELY - don't wait for profile fetch
+      setLoading(false)
+      // Fetch profile asynchronously without blocking
       if (session?.user) {
-        const profileData = await fetchProfile(session.user.id)
-        setProfile(profileData)
+        fetchProfile(session.user.id).then(setProfile)
       } else {
         setProfile(null)
       }
-      setLoading(false)
     })
 
     return () => subscription.unsubscribe()
