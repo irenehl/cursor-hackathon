@@ -20,7 +20,7 @@ export default function SessionPage() {
   const router = useRouter()
   const eventId = params.eventId as string
   const sessionId = params.sessionId as string
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const pixiAppRef = useRef<PixiAppManager | null>(null)
   const gameMapRef = useRef<GameMap | null>(null)
   const playerManagerRef = useRef<PlayerManager | null>(null)
@@ -36,6 +36,7 @@ export default function SessionPage() {
   const [isHost, setIsHost] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string>('')
   const [presenceState, setPresenceState] = useState<Map<string, any>>(new Map())
+  const [showFightOverlay, setShowFightOverlay] = useState(false)
   const positionBroadcastIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const presenceUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const proximityCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -107,12 +108,15 @@ export default function SessionPage() {
     let mounted = true
 
     async function initializeGame() {
-      if (!canvasRef.current) {
-        setError('Canvas element not found')
+      if (!containerRef.current) {
+        setError('Container element not found')
         return
       }
 
       try {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H5', location: 'session/page:init:start', message: 'session init start', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         // Get current user and profile
         const {
           data: { user },
@@ -168,7 +172,7 @@ export default function SessionPage() {
           }
         }
 
-        // Initialize PixiJS
+        // Initialize PixiJS with the container element
         const pixiApp = new PixiAppManager()
         const app = await pixiApp.initialize(
           {
@@ -177,7 +181,7 @@ export default function SessionPage() {
             backgroundColor: 0x1a1a1a,
             antialias: true,
           },
-          canvasRef.current
+          containerRef.current
         )
 
         if (!mounted) {
@@ -208,7 +212,40 @@ export default function SessionPage() {
         }
 
         const gameMap = new GameMap(worldContainer, mapBounds, punishmentCorner)
-        await gameMap.loadMap() // Load without texture for now (will use fallback)
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:before loadMap', message: 'before gameMap.loadMap', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
+        
+        // Generate tilemap data and load with tilemap system
+        const tilemapData = gameMap.generateDefaultTilemap()
+        await gameMap.loadMap(undefined, tilemapData)
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:after loadMap', message: 'after gameMap.loadMap', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
+        
+        // Add some decorative objects to make the map more interesting
+        // Place a few houses and tents randomly
+        const objectPositions = [
+          { id: 'house1', x: 200, y: 150 },
+          { id: 'house2', x: 400, y: 200 },
+          { id: 'tent1', x: 600, y: 300 },
+          { id: 'tent2', x: 800, y: 250 },
+          { id: 'stone1', x: 300, y: 500 },
+          { id: 'stone2', x: 700, y: 600 },
+          { id: 'grass1', x: 150, y: 400 },
+          { id: 'grass2', x: 500, y: 450 },
+          { id: 'grass3', x: 900, y: 500 },
+        ]
+        
+        for (const obj of objectPositions) {
+          await gameMap.placeObject({
+            objectId: obj.id,
+            x: obj.x,
+            y: obj.y,
+          })
+        }
+        
         gameMapRef.current = gameMap
 
         // Create player manager
@@ -224,6 +261,9 @@ export default function SessionPage() {
         const initialX = mapBounds.width / 2
         const initialY = mapBounds.height / 2
 
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:before createLocalPlayer', message: 'before createLocalPlayer', data: { avatarPath }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         const localPlayer = await playerManager.createLocalPlayer(
           {
             userId: user.id,
@@ -240,10 +280,18 @@ export default function SessionPage() {
           },
           avatarPath
         )
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:after createLocalPlayer', message: 'after createLocalPlayer', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
 
         // Load hat overlay for local player
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:before loadHatOverlay', message: 'before loadHatOverlay', data: { path: '/assets/overlays/punishment-hat.png' }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         await localPlayer.loadHatOverlay('/assets/overlays/punishment-hat.png')
-
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:after loadHatOverlay', message: 'after loadHatOverlay', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         localPlayerRef.current = localPlayer
 
         // Set up Realtime channel for presence and broadcasts
@@ -381,6 +429,11 @@ export default function SessionPage() {
               loserId: payload.loserId,
             }
             pvpManager.handleDuelResolved(duel)
+            // Show fight brawl overlay
+            if (mounted) setShowFightOverlay(true)
+            setTimeout(() => {
+              if (mounted) setShowFightOverlay(false)
+            }, 3200)
             
             // Also update remote player states
             if (playerManagerRef.current) {
@@ -663,6 +716,9 @@ export default function SessionPage() {
           }
         }
       } catch (err: any) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:catch', message: 'session init catch', data: { errMessage: err?.message, errName: err?.name }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         console.error('Error initializing game:', err)
         setError(err.message || 'Failed to initialize game')
         setIsLoading(false)
@@ -703,8 +759,8 @@ export default function SessionPage() {
           </div>
         </div>
       )}
-      <canvas
-        ref={canvasRef}
+      <div
+        ref={containerRef}
         className="w-full h-full"
         style={{ display: 'block' }}
       />
@@ -788,6 +844,17 @@ export default function SessionPage() {
         onAcceptChallenge={handleAcceptChallenge}
         onRejectChallenge={handleRejectChallenge}
       />
+
+      {/* Fight brawl overlay when PvP duel resolves */}
+      {showFightOverlay && (
+        <div className="fight-overlay" aria-hidden>
+          <img
+            src="/assets/overlays/fight-brawl.png"
+            alt=""
+            className="fight-overlay__img"
+          />
+        </div>
+      )}
     </main>
   )
 }

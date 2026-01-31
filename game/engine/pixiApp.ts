@@ -1,18 +1,21 @@
 import { Application, Assets, Ticker } from 'pixi.js'
+import { loadAssetBundles } from '../assets/assetManifest'
 
 export interface PixiAppConfig {
   width: number
   height: number
   backgroundColor?: number
   antialias?: boolean
+  preloadAssets?: boolean
 }
 
 export class PixiAppManager {
   private app: Application | null = null
   private ticker: Ticker | null = null
+  private assetsLoaded: boolean = false
 
-  async initialize(config: PixiAppConfig, canvas: HTMLCanvasElement): Promise<Application> {
-    // Create PixiJS application
+  async initialize(config: PixiAppConfig, container: HTMLElement): Promise<Application> {
+    // Create PixiJS application - let PixiJS create its own canvas
     this.app = new Application({
       width: config.width,
       height: config.height,
@@ -22,21 +25,29 @@ export class PixiAppManager {
       autoDensity: true,
     })
 
-    // Replace the default canvas with the provided one
-    if (this.app.view) {
-      const parent = this.app.view.parentNode
-      if (parent) {
-        parent.removeChild(this.app.view)
-      }
-    }
-    // Set the canvas element directly
-    ;(this.app.renderer as any).canvas = canvas
-    ;(this.app.renderer as any).view = canvas
+    // Append the PixiJS-created canvas to the container
+    container.appendChild(this.app.view as HTMLCanvasElement)
 
     // Use the application's ticker
     this.ticker = this.app.ticker
 
+    // Preload assets if requested (default: true)
+    if (config.preloadAssets !== false) {
+      await this.preloadAssets()
+    }
+
     return this.app
+  }
+
+  /**
+   * Preload all game assets
+   */
+  async preloadAssets(): Promise<void> {
+    if (this.assetsLoaded) {
+      return
+    }
+    await loadAssetBundles()
+    this.assetsLoaded = true
   }
 
   getApp(): Application {

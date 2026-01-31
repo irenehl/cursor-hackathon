@@ -42,7 +42,7 @@ $$;
 CREATE OR REPLACE FUNCTION broadcast_realtime(
   p_topic TEXT,
   p_event_name TEXT,
-  p_payload JSONB,
+  p_payload JSON,
   p_is_private BOOLEAN DEFAULT true
 )
 RETURNS void
@@ -51,10 +51,9 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  -- Use Supabase's realtime.send() function for database broadcasts
-  -- This requires the realtime extension to be enabled
+  -- Use Supabase's realtime.send() function for database broadcasts (expects jsonb)
   PERFORM realtime.send(
-    p_payload,
+    p_payload::jsonb,
     p_event_name,
     p_topic,
     p_is_private
