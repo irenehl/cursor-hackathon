@@ -12,6 +12,18 @@ interface OnboardingGateProps {
   children: React.ReactNode
 }
 
+// Avatar colors matching game/entities/player.ts color palette
+// Game uses: colors[avatarId % 6], so:
+// id 1 → index 1 (Red), id 2 → index 2 (Green), ... id 6 → index 0 (Blue)
+const AVATAR_COLORS = [
+  { id: 1, name: 'Red', hex: '#e24a4a' },
+  { id: 2, name: 'Green', hex: '#4ae24a' },
+  { id: 3, name: 'Yellow', hex: '#e2e24a' },
+  { id: 4, name: 'Purple', hex: '#e24ae2' },
+  { id: 5, name: 'Cyan', hex: '#4ae2e2' },
+  { id: 6, name: 'Blue', hex: '#4a90e2' },
+]
+
 export function OnboardingGate({ children }: OnboardingGateProps) {
   const { user, session, profile, loading, signInWithEmail, signInAnonymously, refreshProfile } = useAuth()
   const [email, setEmail] = useState('')
@@ -204,25 +216,23 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
                 Choose Your Avatar
               </label>
               <div className="grid grid-cols-6 gap-3">
-                {[1, 2, 3, 4, 5, 6].map((id) => (
+                {AVATAR_COLORS.map((color) => (
                   <button
-                    key={id}
+                    key={color.id}
                     type="button"
-                    onClick={() => setAvatarId(id)}
-                    className={`aspect-square rounded-lg border-2 p-2 transition-all duration-150 ${
-                      avatarId === id
-                        ? 'border-accent bg-accent-muted scale-105 shadow-md'
-                        : 'border-border hover:border-border-strong bg-surface-elevated hover:scale-105'
+                    onClick={() => setAvatarId(color.id)}
+                    className={`aspect-square rounded-lg border-2 transition-all duration-150 ${
+                      avatarId === color.id
+                        ? 'border-accent ring-2 ring-accent ring-offset-2 scale-105 shadow-md'
+                        : 'border-border hover:border-border-strong hover:scale-105'
                     }`}
-                  >
-                    <div className="h-full w-full rounded bg-background flex items-center justify-center text-lg font-bold text-text">
-                      {id}
-                    </div>
-                  </button>
+                    style={{ backgroundColor: color.hex }}
+                    title={color.name}
+                  />
                 ))}
               </div>
               <p className="mt-2 text-xs text-text-muted">
-                Avatar images coming soon. For now, pick your favorite number.
+                Choose a color for your avatar character
               </p>
             </div>
 
