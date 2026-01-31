@@ -48,8 +48,8 @@ export default function TicketPage() {
       toast.success('Successfully joined event!')
       router.push(`/events/${eventId}/session/${result.session_id}`)
     } catch (error: any) {
-      console.error('Error joining event:', error)
-      toast.error(error.message || 'Failed to join event')
+      console.error('Error joining event:', error?.message || error)
+      toast.error(error?.message || 'Failed to join event')
     } finally {
       setLoading(false)
     }
