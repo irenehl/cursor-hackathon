@@ -1,7 +1,7 @@
 import { Container } from 'pixi.js'
 import { LocalPlayer } from './localPlayer'
 import { RemotePlayer } from './remotePlayer'
-import { PlayerState } from './player'
+import { PlayerState, PlayerConfig } from './player'
 import { GameMap } from '../world/map'
 
 export class PlayerManager {
@@ -22,7 +22,7 @@ export class PlayerManager {
   }
 
   async createLocalPlayer(
-    config: { userId: string; displayName: string; avatarId: number },
+    config: PlayerConfig,
     initialState: PlayerState,
     avatarPath: string
   ): Promise<LocalPlayer> {
@@ -30,7 +30,7 @@ export class PlayerManager {
     this.container.addChild(playerContainer)
 
     const player = new LocalPlayer(playerContainer, config, initialState)
-    await player.loadAvatar(avatarPath)
+    await player.loadAvatar(config.characterType, avatarPath)
     
     if (this.map) {
       player.setMap(this.map)
@@ -41,7 +41,7 @@ export class PlayerManager {
   }
 
   async createRemotePlayer(
-    config: { userId: string; displayName: string; avatarId: number },
+    config: PlayerConfig,
     initialState: PlayerState,
     avatarPath: string
   ): Promise<RemotePlayer> {
@@ -49,7 +49,7 @@ export class PlayerManager {
     this.container.addChild(playerContainer)
 
     const player = new RemotePlayer(playerContainer, config, initialState)
-    await player.loadAvatar(avatarPath)
+    await player.loadAvatar(config.characterType, avatarPath)
 
     this.remotePlayers.set(config.userId, player)
     return player

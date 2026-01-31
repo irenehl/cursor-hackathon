@@ -1,5 +1,5 @@
 import { Container } from 'pixi.js'
-import { Player, PlayerState } from './player'
+import { Player, PlayerState, PlayerConfig } from './player'
 
 export class RemotePlayer extends Player {
   private previousState: PlayerState | null = null
@@ -7,7 +7,7 @@ export class RemotePlayer extends Player {
   private interpolationTime: number = 0
   private interpolationDuration: number = 0.1 // 100ms interpolation
 
-  constructor(container: Container, config: { userId: string; displayName: string; avatarId: number }, initialState: PlayerState) {
+  constructor(container: Container, config: PlayerConfig, initialState: PlayerState) {
     super(container, config, initialState)
     this.currentState = initialState
   }

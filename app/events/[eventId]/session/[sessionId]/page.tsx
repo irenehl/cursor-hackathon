@@ -14,6 +14,7 @@ import { PvpManager } from '@/game/entities/pvpManager'
 import { createPvpDuel, acceptPvpAndResolve, raiseHand } from '@/lib/supabase/rpc'
 import { PvpUi } from '@/components/game/pvp-ui'
 import { HostOverlay } from '@/components/game/host-overlay'
+import { getAvatarPath, CharacterType } from '@/game/config/characters'
 
 export default function SessionPage() {
   const params = useParams()
@@ -134,7 +135,7 @@ export default function SessionPage() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('display_name, avatar_id')
+          .select('display_name, avatar_id, character_type')
           .eq('user_id', user.id)
           .single()
 
@@ -237,25 +238,28 @@ export default function SessionPage() {
 
         // Create local player
         const avatarId = profile.avatar_id || 1
-        const avatarPath = `/assets/avatars/avatar-${avatarId}.png`
+        const characterType = (profile.character_type || 'default') as CharacterType
+        const avatarPath = getAvatarPath(characterType, avatarId)
         
         // Start at center of map
         const initialX = mapBounds.width / 2
         const initialY = mapBounds.height / 2
 
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:before createLocalPlayer', message: 'before createLocalPlayer', data: { avatarPath }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:before createLocalPlayer', message: 'before createLocalPlayer', data: { avatarPath, characterType }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
         // #endregion
         const localPlayer = await playerManager.createLocalPlayer(
           {
             userId: user.id,
             displayName: profile.display_name || 'Player',
             avatarId,
+            characterType,
           },
           {
             userId: user.id,
             displayName: profile.display_name || 'Player',
             avatarId,
+            characterType,
             x: initialX,
             y: initialY,
             dir: 0,
@@ -282,7 +286,8 @@ export default function SessionPage() {
           sessionId,
           user.id,
           profile.display_name || 'Player',
-          avatarId
+          avatarId,
+          characterType
         )
 
         // Create PvP manager
@@ -465,7 +470,7 @@ export default function SessionPage() {
         positionBroadcastIntervalRef.current = positionUpdateInterval
 
         // Set up proximity checking
-        proximityCheckIntervalRef.current = setInterval(() => {
+        proximityCheckIntervalRef.current = setInterval(async () => {
           if (!mounted || !localPlayerRef.current || !instanceChannelRef.current || !pvpManagerRef.current) {
             return
           }
@@ -507,17 +512,20 @@ export default function SessionPage() {
               const presenceState = instanceChannelRef.current.getRemotePlayers()
               const presence = presenceState.get(userId)
               if (presence) {
-                const avatarPath = `/assets/avatars/avatar-${presence.avatarId}.png`
-                playerManagerRef.current?.createRemotePlayer(
+                const remoteCharacterType = (presence.characterType || 'default') as CharacterType
+                const avatarPath = getAvatarPath(remoteCharacterType, presence.avatarId)
+                await playerManagerRef.current?.createRemotePlayer(
                   {
                     userId: presence.userId,
                     displayName: presence.displayName,
                     avatarId: presence.avatarId,
+                    characterType: remoteCharacterType,
                   },
                   {
                     userId: presence.userId,
                     displayName: presence.displayName,
                     avatarId: presence.avatarId,
+                    characterType: remoteCharacterType,
                     x: presence.currentX,
                     y: presence.currentY,
                     dir: presence.currentDir,
@@ -533,6 +541,7 @@ export default function SessionPage() {
                   userId: remoteState.userId,
                   displayName: remoteState.displayName,
                   avatarId: remoteState.avatarId,
+                  characterType: (remoteState.characterType || 'default') as CharacterType,
                   x: remoteState.currentX,
                   y: remoteState.currentY,
                   dir: remoteState.currentDir,

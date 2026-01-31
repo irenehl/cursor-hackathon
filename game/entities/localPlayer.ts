@@ -1,5 +1,5 @@
 import { Container } from 'pixi.js'
-import { Player, PlayerState } from './player'
+import { Player, PlayerState, PlayerConfig } from './player'
 import { GameMap } from '../world/map'
 
 export interface MovementKeys {
@@ -20,7 +20,7 @@ export class LocalPlayer extends Player {
   private speed: number = 150 // pixels per second
   private map: GameMap | null = null
 
-  constructor(container: Container, config: { userId: string; displayName: string; avatarId: number }, initialState: PlayerState) {
+  constructor(container: Container, config: PlayerConfig, initialState: PlayerState) {
     super(container, config, initialState)
   }
 

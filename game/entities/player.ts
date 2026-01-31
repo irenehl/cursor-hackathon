@@ -1,9 +1,11 @@
-import { Container, Sprite, Texture, Graphics, Text } from 'pixi.js'
+import { Container, Sprite, Texture, Graphics, Text, Rectangle } from 'pixi.js'
+import { CharacterType } from '../config/characters'
 
 export interface PlayerState {
   userId: string
   displayName: string
   avatarId: number
+  characterType: CharacterType
   x: number
   y: number
   dir: number // direction: 0=right, 1=down, 2=left, 3=up
@@ -13,6 +15,7 @@ export interface PlayerConfig {
   userId: string
   displayName: string
   avatarId: number
+  characterType: CharacterType
   isLocal?: boolean
 }
 
@@ -37,18 +40,28 @@ export class Player {
     this.state = initialState
   }
 
-  async loadAvatar(avatarPath: string): Promise<void> {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'player.ts:loadAvatar:entry', message: 'loadAvatar start', data: { avatarPath }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
-    // #endregion
-    try {
-      this.avatarTexture = await Texture.fromURL(avatarPath)
-    } catch (error: any) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'player.ts:loadAvatar:catch', message: 'loadAvatar failed', data: { avatarPath, errMessage: error?.message }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
-      // #endregion
-      console.warn(`Failed to load avatar from ${avatarPath}, using pixel-art placeholder`, error)
-      // Create a pixel-art style character placeholder
+  async loadAvatar(characterType: CharacterType, avatarPath?: string): Promise<void> {
+    if (characterType === 'default') {
+      // Use pixel-art placeholder for default character
+      this.avatarTexture = this.createPixelArtPlaceholder()
+    } else if (avatarPath) {
+      // Load monster sprite and extract first frame from spritesheet
+      try {
+        // Use Texture.fromURL (correct PixiJS v7 API)
+        const fullTexture = await Texture.fromURL(avatarPath)
+        // Monster spritesheets are horizontal strips, each frame is 32x32
+        const frameWidth = 32
+        const frameHeight = 32
+        const frame = new Rectangle(0, 0, frameWidth, frameHeight)
+        // Create a new texture with the frame from the base texture
+        this.avatarTexture = new Texture(fullTexture.baseTexture, frame)
+      } catch (error: any) {
+        console.warn(`Failed to load avatar from ${avatarPath}, using pixel-art placeholder`, error)
+        // Fallback to pixel-art placeholder
+        this.avatarTexture = this.createPixelArtPlaceholder()
+      }
+    } else {
+      // No avatar path provided, use placeholder
       this.avatarTexture = this.createPixelArtPlaceholder()
     }
     
