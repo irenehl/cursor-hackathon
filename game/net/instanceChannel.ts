@@ -45,6 +45,7 @@ export class InstanceChannel {
   private displayName: string
   private avatarId: number
   private characterType: string
+  private isUnsubscribing = false // Flag to prevent errors during intentional cleanup
 
   // Presence tracking
   private presenceCallback: PresenceCallback | null = null
@@ -146,15 +147,42 @@ export class InstanceChannel {
         this.handleServerBroadcast('penalty', payload)
       }
     )
-
-    // Subscribe to the channel
-    await this.channel.subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        // Track initial presence
-        await this.trackPresence(0, 0, 0)
-      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-        throw new Error(`Failed to subscribe to channel: ${status}`)
+    this.channel.on(
+      'broadcast',
+      { event: 'chat_message' },
+      ({ payload }) => {
+        this.handleServerBroadcast('chat_message', payload)
       }
+    )
+
+    // Subscribe to the channel with proper Promise handling
+    return new Promise<void>((resolve, reject) => {
+      // Add timeout for subscription
+      const timeout = setTimeout(() => {
+        if (!this.isUnsubscribing) {
+          reject(new Error('Channel subscription timed out after 10 seconds'))
+        }
+      }, 10000)
+
+      this.channel!.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          clearTimeout(timeout)
+          try {
+            // Track initial presence
+            await this.trackPresence(0, 0, 0)
+            resolve()
+          } catch (err) {
+            reject(err)
+          }
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          clearTimeout(timeout)
+          // Only reject if we're not intentionally unsubscribing
+          if (!this.isUnsubscribing) {
+            reject(new Error(`Failed to subscribe to channel: ${status}`))
+          }
+        }
+        // Ignore other intermediate statuses like 'SUBSCRIBING'
+      })
     })
   }
 
@@ -434,10 +462,18 @@ export class InstanceChannel {
    * Unsubscribe and cleanup
    */
   async unsubscribe(): Promise<void> {
+    // Set flag first to prevent subscribe rejection during cleanup
+    this.isUnsubscribing = true
+    
     this.stopPositionBroadcast()
 
     if (this.channel) {
-      await this.channel.unsubscribe()
+      try {
+        await this.channel.unsubscribe()
+      } catch (err) {
+        // Ignore errors during unsubscribe (channel might already be closed)
+        console.warn('Error during channel unsubscribe:', err)
+      }
       this.channel = null
     }
 

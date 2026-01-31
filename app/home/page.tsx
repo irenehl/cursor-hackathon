@@ -16,9 +16,9 @@ export default function Home() {
   const { user, profile, signOut } = useAuth()
   const [isCreatingEvent, setIsCreatingEvent] = useState(false)
   const [eventTitle, setEventTitle] = useState('')
-  const [eventDuration, setEventDuration] = useState(60)
-  const [eventCapacity, setEventCapacity] = useState(50)
-  const [ticketCount, setTicketCount] = useState(10)
+  const [eventDuration, setEventDuration] = useState('60')
+  const [eventCapacity, setEventCapacity] = useState('50')
+  const [ticketCount, setTicketCount] = useState('10')
   const [eventVisibility, setEventVisibility] = useState<'public' | 'private'>('public')
 
   const isAnonymous = user?.is_anonymous ?? false
@@ -46,8 +46,8 @@ export default function Home() {
         .insert({
           title: eventTitle.trim(),
           starts_at: new Date().toISOString(),
-          duration_minutes: eventDuration,
-          capacity: eventCapacity,
+          duration_minutes: parseInt(eventDuration, 10) || 60,
+          capacity: parseInt(eventCapacity, 10) || 50,
           host_user_id: user.id,
           status: 'open',
           visibility: eventVisibility,
@@ -59,7 +59,8 @@ export default function Home() {
 
       const ticketCodes: string[] = []
       const tickets = []
-      for (let i = 0; i < ticketCount; i++) {
+      const parsedTicketCount = parseInt(ticketCount, 10) || 10
+      for (let i = 0; i < parsedTicketCount; i++) {
         const code = `TICKET-${event.id.slice(0, 8)}-${i + 1}`
         ticketCodes.push(code)
         tickets.push({
@@ -138,7 +139,7 @@ export default function Home() {
                     Browse Events
                   </h2>
                   <p className="text-text-muted text-sm sm:text-base">
-                    Step through the portal and discover what&apos;s happening in the 2D realm
+                    Step through the portal and discover what's happening in the 2D realm. View your hosted events and manage tickets.
                   </p>
                 </div>
                 <div className="text-xl text-text-muted">→</div>
@@ -184,16 +185,28 @@ export default function Home() {
                       ))}
                     </div>
                   </div>
-                  <Button
-                    onClick={() => {
-                      setCreatedEvent(null)
-                      router.push('/events')
-                    }}
-                    className="mt-4 w-full"
-                    variant="primary"
-                  >
-                    View Event
-                  </Button>
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      onClick={() => {
+                        setCreatedEvent(null)
+                        router.push(`/events/${createdEvent.eventId}/manage`)
+                      }}
+                      className="flex-1"
+                      variant="secondary"
+                    >
+                      Manage Tickets
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setCreatedEvent(null)
+                        router.push('/events')
+                      }}
+                      className="flex-1"
+                      variant="primary"
+                    >
+                      My Hosted Events
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -214,8 +227,8 @@ export default function Home() {
                     label="Duration (minutes)"
                     type="number"
                     value={eventDuration}
-                    onChange={(e) => setEventDuration(parseInt(e.target.value) || 60)}
-                    min={1}
+                    onChange={(e) => setEventDuration(e.target.value)}
+                    min="1"
                     required
                   />
 
@@ -224,8 +237,8 @@ export default function Home() {
                     label="Capacity"
                     type="number"
                     value={eventCapacity}
-                    onChange={(e) => setEventCapacity(parseInt(e.target.value) || 50)}
-                    min={1}
+                    onChange={(e) => setEventCapacity(e.target.value)}
+                    min="1"
                     required
                   />
                 </div>
@@ -276,9 +289,9 @@ export default function Home() {
                   label="Number of Tickets"
                   type="number"
                   value={ticketCount}
-                  onChange={(e) => setTicketCount(parseInt(e.target.value) || 10)}
-                  min={1}
-                  max={100}
+                  onChange={(e) => setTicketCount(e.target.value)}
+                  min="1"
+                  max="100"
                   required
                   helperText="Max 100 tickets per event"
                 />

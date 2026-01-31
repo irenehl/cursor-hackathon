@@ -24,11 +24,18 @@ interface Event {
   visibility?: 'public' | 'private'
 }
 
+interface TicketStats {
+  total: number
+  available: number
+  redeemed: number
+}
+
 export default function EventsPage() {
   const router = useRouter()
   const { user } = useAuth()
   const [events, setEvents] = useState<Event[]>([])
   const [myEvents, setMyEvents] = useState<Event[]>([])
+  const [ticketStats, setTicketStats] = useState<Record<string, TicketStats>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -57,6 +64,33 @@ export default function EventsPage() {
 
           if (!myEventsError) {
             setMyEvents(myEventsData || [])
+            
+            // Fetch ticket stats for all hosted events efficiently
+            if (myEventsData && myEventsData.length > 0) {
+              const eventIds = myEventsData.map(e => e.id)
+              
+              // Fetch all tickets for hosted events in one query
+              const { data: ticketsData, error: ticketsError } = await supabase
+                .from('tickets')
+                .select('event_id, used_at')
+                .in('event_id', eventIds)
+              
+              if (!ticketsError && ticketsData) {
+                // Calculate stats per event
+                const stats: Record<string, TicketStats> = {}
+                
+                eventIds.forEach(eventId => {
+                  const eventTickets = ticketsData.filter(t => t.event_id === eventId)
+                  stats[eventId] = {
+                    total: eventTickets.length,
+                    available: eventTickets.filter(t => t.used_at === null).length,
+                    redeemed: eventTickets.filter(t => t.used_at !== null).length,
+                  }
+                })
+                
+                setTicketStats(stats)
+              }
+            }
           }
         }
       } catch (err: any) {
@@ -159,6 +193,24 @@ export default function EventsPage() {
                           <span>🔒</span>
                           <span className="capitalize">{event.visibility || 'public'}</span>
                         </div>
+                        {ticketStats[event.id] && (
+                          <div className="pt-2 border-t border-border">
+                            <div className="grid grid-cols-3 gap-2 text-xs">
+                              <div>
+                                <div className="font-semibold text-text">{ticketStats[event.id].total}</div>
+                                <div className="text-text-muted">Total</div>
+                              </div>
+                              <div>
+                                <div className="font-semibold text-accent">{ticketStats[event.id].available}</div>
+                                <div className="text-text-muted">Available</div>
+                              </div>
+                              <div>
+                                <div className="font-semibold text-text-muted">{ticketStats[event.id].redeemed}</div>
+                                <div className="text-text-muted">Redeemed</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <Button
