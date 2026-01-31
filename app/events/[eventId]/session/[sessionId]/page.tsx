@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { InstanceChannel } from '@/game/net/instanceChannel'
 import { PvpManager } from '@/game/entities/pvpManager'
-import { createPvpDuel, acceptPvpAndResolve, raiseHand } from '@/lib/supabase/rpc'
+import { createPvpDuel, acceptPvpAndResolve, raiseHand, leaveSession, getSessionHost } from '@/lib/supabase/rpc'
 import { PvpUi } from '@/components/game/pvp-ui'
 import { HostOverlay } from '@/components/game/host-overlay'
 import { getAvatarPath, CharacterType } from '@/game/config/characters'
@@ -42,6 +42,7 @@ export default function SessionPage() {
   const presenceUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const proximityCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const playersUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const sessionHostIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // PvP handlers (using useCallback to create stable references)
   const handleChallenge = useCallback(async (opponentId: string) => {
@@ -144,10 +145,10 @@ export default function SessionPage() {
           return
         }
 
-        // Check if user is host and verify access for private events
+        // Verify access for private events
         const { data: eventData } = await supabase
           .from('events')
-          .select('host_user_id, visibility')
+          .select('visibility')
           .eq('id', eventId)
           .single()
 
@@ -156,8 +157,9 @@ export default function SessionPage() {
           return
         }
 
-        const isHost = eventData.host_user_id === user.id
-        setIsHost(isHost)
+        // Session host = event host if in session, else first player by join time (will be set by poll)
+        const sessionHost = await getSessionHost(eventId, sessionId)
+        setIsHost(sessionHost.host_user_id === user.id)
 
         // For private events, verify user has access (host or ticket holder)
         if (eventData.visibility === 'private' && !isHost) {
@@ -587,6 +589,19 @@ export default function SessionPage() {
           setPlayersOnline(players)
         }, 1000) // Update every second
 
+        // Poll session host (host = event host if in session, else first player by join time)
+        sessionHostIntervalRef.current = setInterval(async () => {
+          if (!mounted) return
+          try {
+            const sessionHost = await getSessionHost(eventId, sessionId)
+            if (sessionHost.host_user_id) {
+              setIsHost(sessionHost.host_user_id === user.id)
+            }
+          } catch {
+            // ignore
+          }
+        }, 3000) // Every 3 seconds
+
         // Set up game loop
         const ticker = pixiApp.getTicker()
         ticker.add(() => {
@@ -706,6 +721,7 @@ export default function SessionPage() {
         // Cleanup function
         return () => {
           mounted = false
+          leaveSession(sessionId).catch(() => {})
           window.removeEventListener('keydown', handleKeyDown)
           window.removeEventListener('keyup', handleKeyUp)
           window.removeEventListener('resize', handleResize)
@@ -720,6 +736,9 @@ export default function SessionPage() {
           }
           if (playersUpdateIntervalRef.current) {
             clearInterval(playersUpdateIntervalRef.current)
+          }
+          if (sessionHostIntervalRef.current) {
+            clearInterval(sessionHostIntervalRef.current)
           }
           if (instanceChannelRef.current) {
             instanceChannelRef.current.unsubscribe()

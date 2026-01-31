@@ -34,6 +34,10 @@ export default function Home() {
       toast.error('Please enter an event title')
       return
     }
+    if (eventVisibility === 'private' && ticketCount < 1) {
+      toast.error('Private events need at least 1 ticket')
+      return
+    }
 
     setIsCreatingEvent(true)
     try {
@@ -60,25 +64,24 @@ export default function Home() {
 
       if (eventError) throw eventError
 
-      // Generate ticket codes
-      // For public events, tickets are public; for private events, tickets are private
+      // Generate ticket codes (optional for public events - 0 tickets = open to all)
       const ticketCodes: string[] = []
       const tickets = []
-      for (let i = 0; i < ticketCount; i++) {
-        const code = `TICKET-${event.id.slice(0, 8)}-${i + 1}`
-        ticketCodes.push(code)
-        tickets.push({
-          code,
-          event_id: event.id,
-          is_public: eventVisibility === 'public',
-        })
+      if (ticketCount > 0) {
+        for (let i = 0; i < ticketCount; i++) {
+          const code = `TICKET-${event.id.slice(0, 8)}-${i + 1}`
+          ticketCodes.push(code)
+          tickets.push({
+            code,
+            event_id: event.id,
+            is_public: eventVisibility === 'public',
+          })
+        }
+        const { error: ticketsError } = await supabase
+          .from('tickets')
+          .insert(tickets)
+        if (ticketsError) throw ticketsError
       }
-
-      const { error: ticketsError } = await supabase
-        .from('tickets')
-        .insert(tickets)
-
-      if (ticketsError) throw ticketsError
 
       setCreatedEvent({
         eventId: event.id,
@@ -183,16 +186,23 @@ export default function Home() {
                       {createdEvent.eventId}
                     </code>
                   </p>
-                  <div className="mt-4">
-                    <p className="text-sm font-semibold mb-3 text-text">
-                      Distribute these golden tickets:
-                    </p>
-                    <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
-                      {createdEvent.ticketCodes.map((code) => (
-                        <TicketCode key={code} code={code} />
-                      ))}
+                  {createdEvent.ticketCodes.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-sm font-semibold mb-3 text-text">
+                        Distribute these golden tickets:
+                      </p>
+                      <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                        {createdEvent.ticketCodes.map((code) => (
+                          <TicketCode key={code} code={code} />
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
+                  {createdEvent.ticketCodes.length === 0 && eventVisibility === 'public' && (
+                    <p className="mt-4 text-sm text-text-muted">
+                      Evento público abierto a todos (sin tickets). Máx. {eventCapacity} personas.
+                    </p>
+                  )}
                   <Button
                     onClick={() => {
                       setCreatedEvent(null)
@@ -285,11 +295,12 @@ export default function Home() {
                   label="Number of Tickets"
                   type="number"
                   value={ticketCount}
-                  onChange={(e) => setTicketCount(parseInt(e.target.value) || 10)}
-                  min="1"
+                  onChange={(e) => setTicketCount(parseInt(e.target.value) || 0)}
+                  min="0"
                   max="100"
-                  required
-                  helperText="Max 100 tickets per event"
+                  helperText={eventVisibility === 'public' 
+                    ? '0 = evento abierto a todos (sin tickets). Máx 100 tickets.'
+                    : 'Mín 1 para eventos privados. Máx 100.'}
                 />
 
                 <Button

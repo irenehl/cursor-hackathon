@@ -26,6 +26,35 @@ export async function joinPublicEvent(eventId: string) {
   return { session_id: data as string }
 }
 
+export async function leaveSession(sessionId: string) {
+  const { error } = await supabase.rpc('leave_session', {
+    p_session_id: sessionId,
+  })
+  if (error) {
+    console.warn('leave_session error:', error)
+  }
+}
+
+export async function getSessionHost(eventId: string, sessionId: string) {
+  const { data, error } = await supabase.rpc('get_session_host', {
+    p_event_id: eventId,
+    p_session_id: sessionId,
+  })
+  if (error) {
+    console.warn('get_session_host error:', error)
+    return { host_user_id: null, display_name: null }
+  }
+  return data as { host_user_id: string | null; display_name: string | null }
+}
+
+export async function createDemoPublicEvent() {
+  const { data, error } = await supabase.rpc('create_demo_public_event')
+  if (error) {
+    throw new Error(error.message || 'Failed to create demo event')
+  }
+  return { event_id: data as string }
+}
+
 export async function raiseHand(eventId: string) {
   const { data, error } = await supabase.rpc('raise_hand', {
     p_event_id: eventId,

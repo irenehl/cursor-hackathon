@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { joinEvent, joinPublicEvent } from '@/lib/supabase/rpc'
+import { joinEvent, joinPublicEvent, createDemoPublicEvent } from '@/lib/supabase/rpc'
 import { supabase } from '@/lib/supabase/client'
+import { useAuth } from '@/lib/auth/auth-context'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -17,6 +18,7 @@ interface Ticket {
 export default function TicketPage() {
   const router = useRouter()
   const params = useParams()
+  const { user, signInAnonymously, loading: authLoading } = useAuth()
   const eventId = params.eventId as string
   const [ticketCode, setTicketCode] = useState('')
   const [loading, setLoading] = useState(false)
@@ -84,12 +86,24 @@ export default function TicketPage() {
   const handlePublicJoin = async () => {
     setPublicJoinLoading(true)
     try {
+      if (!user) {
+        const { error } = await signInAnonymously()
+        if (error) {
+          toast.error(error.message || 'No se pudo entrar como invitado')
+          return
+        }
+      }
       const result = await joinPublicEvent(eventId)
       toast.success("You're in! Try not to break anything.")
       router.push(`/events/${eventId}/session/${result.session_id}`)
     } catch (error: any) {
       console.error('Error joining public event:', error)
-      toast.error(error.message || 'Failed to join event')
+      const msg = error?.message || 'Failed to join event'
+      if (msg.includes('full') || msg.includes('max')) {
+        toast.error('El evento está lleno (máx. 50 personas)')
+      } else {
+        toast.error(msg)
+      }
     } finally {
       setPublicJoinLoading(false)
     }

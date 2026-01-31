@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
+import { createDemoPublicEvent } from '@/lib/supabase/rpc'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -30,42 +32,67 @@ export default function EventsPage() {
   const [myEvents, setMyEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [creatingDemo, setCreatingDemo] = useState(false)
 
-  useEffect(() => {
-    async function fetchEvents() {
-      try {
-        const { data, error: fetchError } = await supabase
+  const handleCreateDemoEvent = async () => {
+    if (!user) {
+      toast.error('Inicia sesión para crear un evento')
+      return
+    }
+    setCreatingDemo(true)
+    try {
+      const { event_id } = await createDemoPublicEvent()
+      toast.success('Evento público creado. Abierto a cualquiera, máx. 50 personas.')
+      router.push(`/events/${event_id}/ticket`)
+    } catch (err: any) {
+      toast.error(err.message || 'Error al crear evento')
+    } finally {
+      setCreatingDemo(false)
+    }
+  }
+
+  const fetchEvents = async () => {
+    try {
+      setError(null)
+      const { data, error: fetchError } = await supabase
+        .from('events')
+        .select('*')
+        .order('starts_at', { ascending: true })
+
+      if (fetchError) {
+        const errMsg =
+          fetchError.message ||
+          fetchError.details ||
+          (typeof fetchError === 'object' ? (fetchError as any).error_description : null) ||
+          'Error al cargar eventos. ¿Migraciones aplicadas? (supabase db push)'
+        console.error('Error fetching events:', fetchError)
+        setError(errMsg)
+        setEvents([])
+      } else {
+        setEvents(data || [])
+      }
+
+      if (user && !user.is_anonymous) {
+        const { data: myEventsData, error: myEventsError } = await supabase
           .from('events')
           .select('*')
-          .order('starts_at', { ascending: true })
+          .eq('host_user_id', user.id)
+          .order('created_at', { ascending: false })
 
-        if (fetchError) {
-          console.error('Error fetching events:', fetchError)
-          setError(fetchError.message)
-        } else {
-          setEvents(data || [])
+        if (!myEventsError) {
+          setMyEvents(myEventsData || [])
         }
-
-        // Fetch user's events if logged in
-        if (user && !user.is_anonymous) {
-          const { data: myEventsData, error: myEventsError } = await supabase
-            .from('events')
-            .select('*')
-            .eq('host_user_id', user.id)
-            .order('created_at', { ascending: false })
-
-          if (!myEventsError) {
-            setMyEvents(myEventsData || [])
-          }
-        }
-      } catch (err: any) {
-        console.error('Error fetching events:', err)
-        setError(err.message || 'Failed to load events')
-      } finally {
-        setLoading(false)
       }
+    } catch (err: any) {
+      console.error('Error fetching events:', err)
+      setError(err?.message || 'Error al cargar eventos')
+      setEvents([])
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchEvents()
   }, [user])
 
@@ -122,22 +149,25 @@ export default function EventsPage() {
           </Button>
         </div>
         
-        {error ? (
-          <Card className="border-accent">
-            <div className="text-center py-8">
-              <p className="text-accent font-semibold mb-2">
-                Oops! The internet hiccupped.
-              </p>
-              <p className="text-text-muted text-sm mb-4">
-                {error}
-              </p>
-              <Button variant="secondary" onClick={() => window.location.reload()}>
-                Try Again
-              </Button>
+        {error && (
+          <Card className="border-accent mb-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-6">
+              <div>
+                <p className="text-accent font-semibold mb-1">Error al cargar eventos</p>
+                <p className="text-text-muted text-sm">{error}</p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Button variant="secondary" onClick={() => fetchEvents()}>
+                  Reintentar
+                </Button>
+                <Button variant="ghost" onClick={() => setError(null)}>
+                  Cerrar
+                </Button>
+              </div>
             </div>
           </Card>
-        ) : (
-          <>
+        )}
+        <>
             {/* My Events Section */}
             {user && !user.is_anonymous && myEvents.length > 0 && (
               <div className="mb-8">
@@ -195,13 +225,29 @@ export default function EventsPage() {
               {events.length === 0 ? (
                 <Card>
                   <EmptyState
-                    title="No events yet"
-                    description="Tumbleweeds roll by. The void awaits your creation. Time to cook up something amazing! (Or at least mildly interesting.)"
+                    title="No hay eventos"
+                    description="Crea un evento público abierto a cualquiera (anónimos y registrados), sin tickets, límite 50 personas."
                     icon="🎪"
                     action={
-                      <Button variant="primary" asChild>
-                        <Link href="/home">Create Event + Tickets</Link>
-                      </Button>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <Button
+                          variant="primary"
+                          onClick={handleCreateDemoEvent}
+                          disabled={creatingDemo || !user}
+                        >
+                          {creatingDemo ? 'Creando...' : 'Crear evento público (50 pers. máx)'}
+                        </Button>
+                        {!user && (
+                          <Button variant="secondary" asChild>
+                            <Link href="/auth">Iniciar sesión para crear</Link>
+                          </Button>
+                        )}
+                        {user && (
+                          <Button variant="secondary" asChild>
+                            <Link href="/home">Crear con tickets</Link>
+                          </Button>
+                        )}
+                      </div>
                     }
                   />
                 </Card>
@@ -244,8 +290,8 @@ export default function EventsPage() {
                 </div>
               )}
             </div>
-          </>
-        )}
+        </>
+
       </div>
     </main>
   )
