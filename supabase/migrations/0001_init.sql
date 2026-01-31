@@ -1,5 +1,5 @@
 -- Supabase Migration: Initial Schema
--- Creates all tables, indexes, and RLS policies for the 2D events MVP
+-- Creates all tables, indexes, and RLS policies for the Pixel Meet
 
 -- ============================================================================
 -- TABLES

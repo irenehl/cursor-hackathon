@@ -32,6 +32,45 @@
   --color-accent-secondary: #432534;
   --color-accent-secondary-muted: #6b3d52; /* plum tint */
 
+  /* Animation utilities */
+  --transition-fast: 150ms ease-out;
+  --transition-base: 200ms ease-out;
+  --transition-slow: 300ms ease-out;
+  --transition-bounce: 200ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* Focus ring styles */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color: var(--color-accent);
+
+  /* Typography scale */
+  --font-mono: 'Courier New', Courier, 'Lucida Console', monospace;
+  --text-xs: 0.75rem;    /* 12px */
+  --text-sm: 0.875rem;   /* 14px */
+  --text-base: 1rem;     /* 16px */
+  --text-lg: 1.125rem;   /* 18px */
+  --text-xl: 1.25rem;    /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 1.875rem;  /* 30px */
+  --text-4xl: 2.25rem;   /* 36px */
+
+  /* Retro decorative elements */
+  --border-dashed-retro: 2px dashed var(--color-border-strong);
+  --border-ticket-perforation: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 8px,
+    var(--color-border) 8px,
+    var(--color-border) 10px
+  );
+
+  /* Shadow utilities */
+  --shadow-sm: 0 1px 2px 0 rgba(4, 21, 31, 0.05);
+  --shadow-base: 0 2px 4px 0 rgba(4, 21, 31, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(4, 21, 31, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(4, 21, 31, 0.1);
+  --shadow-elevated: 0 4px 8px rgba(4, 21, 31, 0.12);
+
   /* Legacy RGB (kept for any existing usage) */
   --foreground-rgb: 4, 21, 31;
   --background-start-rgb: 250, 246, 239;
@@ -59,6 +98,66 @@
   --color-cream: var(--palette-cream);
   --color-ember: var(--palette-ember);
   --color-plum: var(--palette-plum);
+
+  /* Animation utilities */
+  --transition-fast: var(--transition-fast);
+  --transition-base: var(--transition-base);
+  --transition-slow: var(--transition-slow);
+  --transition-bounce: var(--transition-bounce);
+
+  /* Typography */
+  --font-mono: var(--font-mono);
+}
+
+/* Utility classes for retro aesthetics */
+@layer utilities {
+  .focus-ring {
+    outline: none;
+    ring: var(--focus-ring-width);
+    ring-offset: var(--focus-ring-offset);
+    ring-color: var(--focus-ring-color);
+  }
+
+  .ticket-perforation {
+    position: relative;
+  }
+
+  .ticket-perforation::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 1px;
+    background: var(--border-ticket-perforation);
+  }
+
+  .ticket-perforation::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: var(--border-ticket-perforation);
+  }
+
+  .retro-border {
+    border: var(--border-dashed-retro);
+  }
+
+  .pulse-open {
+    animation: pulse-open 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-open {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
 }
 
 body {
@@ -67,10 +166,43 @@ body {
   font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
     "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
     "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .font-pixel {
   font-family: var(--font-press-start), monospace;
+}
+
+/* Smooth transitions for interactive elements */
+* {
+  transition-property: background-color, border-color, color, opacity, transform, box-shadow;
+  transition-duration: var(--transition-base);
+  transition-timing-function: ease-out;
+}
+
+/* Reset transitions for specific elements */
+button, a, input, select, textarea {
+  transition-duration: var(--transition-fast);
+}
+
+/* Toast styling */
+.toast-success {
+  border-color: var(--color-accent) !important;
+}
+
+.toast-error {
+  background: var(--color-accent) !important;
+  color: var(--color-text-inverse) !important;
+  border-color: var(--color-accent-hover) !important;
+}
+
+.toast-info {
+  border-color: var(--color-teal) !important;
+}
+
+.toast-warning {
+  border-color: var(--color-accent-muted) !important;
 }
 
 /* Fight brawl overlay (PvP duel) */

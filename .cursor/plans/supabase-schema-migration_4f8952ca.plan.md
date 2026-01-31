@@ -1,6 +1,6 @@
 ---
 name: supabase-schema-migration
-overview: Create the initial Supabase migration file (0001_init.sql) with all required tables, indexes, and RLS policies for the 2D events MVP.
+overview: Create the initial Supabase migration file (0001_init.sql) with all required tables, indexes, and RLS policies for the Pixel Meet.
 todos:
   - id: create-migrations-dir
     content: Create supabase/migrations/ directory structure
@@ -21,7 +21,7 @@ isProject: false
 
 ## Overview
 
-Create `supabase/migrations/0001_init.sql` containing all database tables, indexes, and Row Level Security (RLS) policies required for the 2D events MVP.
+Create `supabase/migrations/0001_init.sql` containing all database tables, indexes, and Row Level Security (RLS) policies required for the Pixel Meet.
 
 ## File Structure
 

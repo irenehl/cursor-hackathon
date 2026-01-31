@@ -110,7 +110,11 @@ export function HostOverlay({
       <div className="absolute bottom-4 right-4">
         <button
           onClick={() => setIsCollapsed(false)}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold shadow-lg"
+          className="bg-accent-secondary hover:bg-accent-secondary-muted text-text-inverse px-4 py-2 rounded-lg font-semibold shadow-lg transition-all duration-150 active:scale-95 border-2 border-accent-secondary/50"
+          style={{
+            textShadow: '1px 1px 0px rgba(0, 0, 0, 0.3)',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+          }}
         >
           👑 Host Panel
         </button>
@@ -119,12 +123,22 @@ export function HostOverlay({
   }
 
   return (
-    <div className="absolute bottom-4 right-4 bg-gray-900 bg-opacity-90 text-white p-4 rounded-lg shadow-xl max-w-md max-h-[80vh] overflow-y-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-bold">👑 Host Panel</h3>
+    <div 
+      className="absolute bottom-4 right-4 bg-midnight/95 text-text-inverse p-4 rounded-lg shadow-xl max-w-md max-h-[80vh] overflow-y-auto border-2 border-teal"
+      style={{
+        boxShadow: '0 8px 16px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+        fontFamily: 'monospace',
+      }}
+    >
+      <div className="flex justify-between items-center mb-4 pb-3 border-b border-teal/50">
+        <h3 className="text-lg font-bold text-cream flex items-center gap-2">
+          <span>👑</span>
+          <span>HOST COMMAND CENTER</span>
+        </h3>
         <button
           onClick={() => setIsCollapsed(true)}
-          className="text-gray-400 hover:text-white"
+          className="text-text-inverse/80 hover:text-text-inverse transition-colors text-xl leading-none"
+          aria-label="Collapse host panel"
         >
           ✕
         </button>
@@ -132,33 +146,39 @@ export function HostOverlay({
 
       {/* Participants List */}
       <div className="mb-6">
-        <h4 className="font-semibold mb-2 text-sm">
+        <h4 className="font-semibold mb-3 text-sm text-cream uppercase tracking-wider">
           Participants ({participantsList.length})
         </h4>
         <div className="space-y-2 max-h-32 overflow-y-auto">
           {participantsList.length === 0 ? (
-            <p className="text-gray-400 text-xs">No other participants</p>
+            <p className="text-text-inverse/70 text-xs italic">No other participants</p>
           ) : (
             participantsList.map((participant) => (
               <div
                 key={participant.userId}
-                className="flex items-center justify-between p-2 bg-gray-800 rounded text-xs"
+                className="flex items-center justify-between p-2 bg-teal/30 rounded border border-teal/50 text-xs text-cream"
               >
-                <span>{participant.displayName}</span>
+                <span className="font-mono">{participant.displayName}</span>
                 <div className="flex gap-1">
                   <button
                     onClick={() => handleKick(participant.userId)}
-                    className="px-2 py-1 bg-yellow-600 hover:bg-yellow-700 rounded text-xs"
+                    className="px-2 py-1 bg-accent-muted hover:bg-accent text-midnight rounded text-xs font-bold transition-all duration-150 active:scale-95"
                     title="Kick (30s)"
+                    style={{
+                      textShadow: '0 1px 0 rgba(255, 255, 255, 0.3)',
+                    }}
                   >
-                    Kick
+                    KICK
                   </button>
                   <button
                     onClick={() => handleBan(participant.userId)}
-                    className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs"
+                    className="px-2 py-1 bg-accent hover:bg-accent-hover text-text-inverse rounded text-xs font-bold transition-all duration-150 active:scale-95"
                     title="Ban"
+                    style={{
+                      textShadow: '0 1px 0 rgba(0, 0, 0, 0.3)',
+                    }}
                   >
-                    Ban
+                    BAN
                   </button>
                 </div>
               </div>
@@ -169,31 +189,39 @@ export function HostOverlay({
 
       {/* Hand Queue */}
       <div>
-        <h4 className="font-semibold mb-2 text-sm">
+        <h4 className="font-semibold mb-3 text-sm text-cream uppercase tracking-wider">
           Hand Queue ({handQueue.length})
         </h4>
         {loading ? (
-          <p className="text-gray-400 text-xs">Loading...</p>
+          <p className="text-text-inverse/70 text-xs italic">Loading...</p>
         ) : handQueue.length === 0 ? (
-          <p className="text-gray-400 text-xs">No hands raised</p>
+          <p className="text-text-inverse/70 text-xs italic">No hands raised. The silence is... awkward.</p>
         ) : (
           <div className="space-y-2">
-            {handQueue.map((item) => (
+            {handQueue.map((item, index) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between p-2 bg-gray-800 rounded text-xs"
+                className={`flex items-center justify-between p-2 rounded border text-xs text-cream ${
+                  index === 0 
+                    ? 'bg-teal/50 border-teal border-2' 
+                    : 'bg-teal/30 border-teal/50'
+                }`}
               >
                 <div>
-                  <div className="font-medium">{item.display_name}</div>
-                  <div className="text-gray-400 text-xs">
+                  <div className="font-medium font-mono">{item.display_name}</div>
+                  <div className="text-text-inverse/70 text-xs">
                     {new Date(item.created_at).toLocaleTimeString()}
                   </div>
                 </div>
                 <button
                   onClick={() => handleGrant(item.user_id)}
-                  className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-xs font-semibold"
+                  className="px-3 py-1 bg-teal hover:opacity-90 text-cream rounded text-xs font-bold transition-all duration-150 active:scale-95 border border-teal/50"
+                  style={{
+                    textShadow: '0 1px 0 rgba(0, 0, 0, 0.3)',
+                    boxShadow: index === 0 ? '0 2px 4px rgba(0, 0, 0, 0.2)' : 'none',
+                  }}
                 >
-                  Grant
+                  GRANT
                 </button>
               </div>
             ))}

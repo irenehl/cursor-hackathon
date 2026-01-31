@@ -1,5 +1,5 @@
 import { Container } from 'pixi.js'
-import { Player, PlayerState } from './player'
+import { Player, PlayerState, PlayerConfig } from './player'
 import { GameMap } from '../world/map'
 
 export interface MovementKeys {
@@ -20,7 +20,7 @@ export class LocalPlayer extends Player {
   private speed: number = 150 // pixels per second
   private map: GameMap | null = null
 
-  constructor(container: Container, config: { userId: string; displayName: string; avatarId: number }, initialState: PlayerState) {
+  constructor(container: Container, config: PlayerConfig, initialState: PlayerState) {
     super(container, config, initialState)
   }
 
@@ -77,6 +77,11 @@ export class LocalPlayer extends Player {
     if (this.isFrozen()) {
       return this.getState()
     }
+
+    // Update animation state based on movement
+    const isMoving = this.velocity.x !== 0 || this.velocity.y !== 0
+    this.setMoving(isMoving)
+    this.updateAnimation(deltaTime)
 
     const state = this.getState()
     const deltaSeconds = deltaTime / 60 // Assuming 60 FPS base

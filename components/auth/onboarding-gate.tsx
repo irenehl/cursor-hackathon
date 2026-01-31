@@ -1,19 +1,37 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { CHARACTERS, CharacterType, getAvatarPath } from '@/game/config/characters'
 
 interface OnboardingGateProps {
   children: React.ReactNode
 }
 
+// Avatar colors matching game/entities/player.ts color palette
+// Game uses: colors[avatarId % 6], so:
+// id 1 → index 1 (Red), id 2 → index 2 (Green), ... id 6 → index 0 (Blue)
+const AVATAR_COLORS = [
+  { id: 1, name: 'Red', hex: '#e24a4a' },
+  { id: 2, name: 'Green', hex: '#4ae24a' },
+  { id: 3, name: 'Yellow', hex: '#e2e24a' },
+  { id: 4, name: 'Purple', hex: '#e24ae2' },
+  { id: 5, name: 'Cyan', hex: '#4ae2e2' },
+  { id: 6, name: 'Blue', hex: '#4a90e2' },
+]
+
 export function OnboardingGate({ children }: OnboardingGateProps) {
-  const { user, session, profile, loading, signInWithEmail, signInAnonymously, refreshProfile } = useAuth()
-  const [email, setEmail] = useState('')
-  const [emailSent, setEmailSent] = useState(false)
+  const pathname = usePathname()
+  const router = useRouter()
+  const { user, session, profile, loading, refreshProfile } = useAuth()
   const [displayName, setDisplayName] = useState('')
+  const [characterType, setCharacterType] = useState<CharacterType>('default')
   const [avatarId, setAvatarId] = useState<number>(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -24,130 +42,43 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Bypass auth gate for landing page and auth page
+  if (pathname === '/' || pathname === '/auth') {
+    return <>{children}</>
+  }
+
   // If loading, show loading spinner
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
           <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-border border-t-accent mx-auto"></div>
-          <p className="text-text-muted">Loading...</p>
+          <p className="text-text-muted">Summoning your identity...</p>
         </div>
       </div>
     )
   }
 
-  // If not authenticated, show auth options
+  // If not authenticated, redirect to auth page
   if (!user || !session) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md rounded-2xl bg-surface border border-border p-8 shadow-lg">
-          <h1 className="font-pixel mb-6 text-2xl tracking-tight text-text">
-            Welcome to 2D Events
-          </h1>
-
-          {!emailSent ? (
-            <div className="space-y-4">
-              <p className="text-text-muted">Sign in to continue</p>
-
-              <div>
-                <label
-                  htmlFor="email"
-                  className="mb-2 block text-sm font-medium text-text"
-                >
-                  Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-text placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                />
-              </div>
-
-              <button
-                onClick={async () => {
-                  if (!email) {
-                    toast.error('Please enter your email')
-                    return
-                  }
-                  setIsSubmitting(true)
-                  const { error } = await signInWithEmail(email)
-                  setIsSubmitting(false)
-                  if (error) {
-                    toast.error(error.message || 'Failed to send magic link')
-                  } else {
-                    setEmailSent(true)
-                    toast.success('Check your email for the magic link!')
-                  }
-                }}
-                disabled={isSubmitting}
-                className="w-full rounded-lg bg-accent px-4 py-2 text-text-inverse hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
-              >
-                {isSubmitting ? 'Sending...' : 'Send Magic Link'}
-              </button>
-
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="bg-surface px-2 text-text-muted">OR</span>
-                </div>
-              </div>
-
-              <button
-                onClick={async () => {
-                  setIsSubmitting(true)
-                  const { error } = await signInAnonymously()
-                  setIsSubmitting(false)
-                  if (error) {
-                    toast.error(error.message || 'Failed to sign in anonymously')
-                  }
-                }}
-                disabled={isSubmitting}
-                className="w-full rounded-lg border border-border-strong bg-surface px-4 py-2 text-text hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
-              >
-                {isSubmitting ? 'Signing in...' : 'Continue Anonymously'}
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-text-muted">
-                We sent a magic link to <strong className="text-text">{email}</strong>
-              </p>
-              <p className="text-sm text-text-muted">
-                Click the link in your email to sign in. You can close this
-                window.
-              </p>
-              <button
-                onClick={() => {
-                  setEmailSent(false)
-                  setEmail('')
-                }}
-                className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-text hover:bg-surface-elevated transition-colors"
-              >
-                Use a different email
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    )
+    router.push('/auth')
+    return null
   }
 
   // If authenticated but no profile, show profile setup
   if (!profile) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md rounded-2xl bg-surface border border-border p-8 shadow-lg">
-          <h1 className="font-pixel mb-6 text-2xl tracking-tight text-text">
-            Complete Your Profile
-          </h1>
-          <p className="mb-6 text-text-muted">
-            Set up your display name and avatar to continue
-          </p>
+        <Card className="w-full max-w-md rounded-2xl border border-border p-8 shadow-lg">
+          <div className="text-center mb-6">
+            <div className="text-4xl mb-4">🎭</div>
+            <h1 className="font-pixel text-2xl md:text-3xl tracking-tight mb-2 text-text">
+              Character Creation
+            </h1>
+            <p className="text-text-muted text-sm">
+              Choose your identity for the 2D realm
+            </p>
+          </div>
 
           <form
             onSubmit={async (e) => {
@@ -166,6 +97,7 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
                     user_id: user.id,
                     display_name: displayName.trim(),
                     avatar_id: avatarId,
+                    character_type: characterType,
                   },
                   { onConflict: 'user_id' }
                 )
@@ -176,65 +108,109 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
                 toast.error(error.message || 'Failed to save profile')
               } else {
                 await refreshProfile()
-                toast.success('Profile saved!')
+                toast.success('Profile saved! Welcome to the 2D realm.')
               }
             }}
-            className="space-y-4"
+            className="space-y-6"
           >
-            <div>
-              <label
-                htmlFor="displayName"
-                className="mb-2 block text-sm font-medium text-text"
-              >
-                Display Name
-              </label>
-              <input
-                id="displayName"
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Your name"
-                required
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-text placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-              />
-            </div>
+            <Input
+              id="displayName"
+              label="Display Name"
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Your name"
+              required
+            />
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-text">
-                Avatar
+              <label className="block text-sm font-medium text-text mb-2">
+                Character
               </label>
-              <div className="grid grid-cols-6 gap-2">
-                {[1, 2, 3, 4, 5, 6].map((id) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setAvatarId(id)}
-                    className={`aspect-square rounded-lg border-2 p-2 transition-colors ${
-                      avatarId === id
-                        ? 'border-accent bg-accent-muted/30'
-                        : 'border-border hover:border-border-strong hover:bg-surface-elevated'
-                    }`}
-                  >
-                    <div className="flex h-full w-full items-center justify-center rounded bg-surface-elevated text-xs font-medium text-text">
-                      {id}
-                    </div>
-                  </button>
-                ))}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                {(Object.keys(CHARACTERS) as CharacterType[]).map((type) => {
+                  const character = CHARACTERS[type]
+                  const avatarPath = getAvatarPath(type, avatarId)
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setCharacterType(type)}
+                      className={`relative rounded-lg border-2 p-3 transition-all ${
+                        characterType === type
+                          ? 'border-accent ring-2 ring-accent ring-offset-2'
+                          : 'border-border hover:border-border-strong'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 shrink-0 rounded bg-surface-elevated flex items-center justify-center overflow-hidden border border-border">
+                          {type === 'default' ? (
+                            <div
+                              className="w-full h-full rounded"
+                              style={{ backgroundColor: AVATAR_COLORS.find(c => c.id === avatarId)?.hex || '#e24a4a' }}
+                            />
+                          ) : (
+                            <img
+                              src={avatarPath}
+                              alt={character.name}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement
+                                target.style.display = 'none'
+                                target.parentElement!.innerHTML = '<div class="w-full h-full bg-surface-elevated rounded"></div>'
+                              }}
+                            />
+                          )}
+                        </div>
+                        <div className="text-left flex-1">
+                          <div className="font-medium text-sm text-text">{character.name}</div>
+                          {type === 'default' && (
+                            <div className="text-xs text-text-muted">Customizable colors</div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
-              <p className="mt-2 text-xs text-text-muted">
-                Avatar images will be added later. For now, select a number.
-              </p>
             </div>
+
+            {CHARACTERS[characterType].hasColors && (
+              <div>
+                <label className="block text-sm font-medium text-text mb-2">
+                  Avatar Color
+                </label>
+                <div className="grid grid-cols-6 gap-2">
+                  {AVATAR_COLORS.map((color) => (
+                    <button
+                      key={color.id}
+                      type="button"
+                      onClick={() => setAvatarId(color.id)}
+                      className={`aspect-square rounded-lg border-2 transition-all ${
+                        avatarId === color.id
+                          ? 'border-accent ring-2 ring-accent ring-offset-2 scale-105'
+                          : 'border-border hover:border-border-strong hover:scale-105'
+                      }`}
+                      style={{ backgroundColor: color.hex }}
+                      title={color.name}
+                    />
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-text-muted">
+                  Choose a color for your avatar character
+                </p>
+              </div>
+            )}
 
             <button
               type="submit"
               disabled={isSubmitting || !displayName.trim()}
               className="w-full rounded-lg bg-accent px-4 py-2 text-text-inverse hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
             >
-              {isSubmitting ? 'Saving...' : 'Continue'}
+              {isSubmitting ? 'Creating your character...' : 'Enter the 2D Realm'}
             </button>
           </form>
-        </div>
+        </Card>
       </div>
     )
   }

@@ -5,6 +5,7 @@ export interface PlayerState {
   userId: string
   displayName: string
   avatarId: number
+  characterType: string
   x: number
   y: number
   dir: number // direction: 0-360 degrees or -1 to 1 for x/y
@@ -22,6 +23,7 @@ export interface RemotePlayerState {
   userId: string
   displayName: string
   avatarId: number
+  characterType: string
   // For interpolation: keep last two states
   states: [PositionUpdate | null, PositionUpdate | null]
   currentX: number
@@ -42,6 +44,7 @@ export class InstanceChannel {
   private userId: string
   private displayName: string
   private avatarId: number
+  private characterType: string
 
   // Presence tracking
   private presenceCallback: PresenceCallback | null = null
@@ -64,12 +67,14 @@ export class InstanceChannel {
     sessionId: string,
     userId: string,
     displayName: string,
-    avatarId: number
+    avatarId: number,
+    characterType: string
   ) {
     this.topic = `event:${eventId}:session:${sessionId}`
     this.userId = userId
     this.displayName = displayName
     this.avatarId = avatarId
+    this.characterType = characterType
   }
 
   /**
@@ -165,6 +170,7 @@ export class InstanceChannel {
       userId: this.userId,
       displayName: this.displayName,
       avatarId: this.avatarId,
+      characterType: this.characterType,
       x,
       y,
       dir,
@@ -268,6 +274,7 @@ export class InstanceChannel {
             userId: key,
             displayName: state.displayName,
             avatarId: state.avatarId,
+            characterType: state.characterType || 'default',
             states: [null, null],
             currentX: state.x,
             currentY: state.y,
@@ -310,6 +317,7 @@ export class InstanceChannel {
           userId: update.userId,
           displayName: presenceState.displayName,
           avatarId: presenceState.avatarId,
+          characterType: presenceState.characterType || 'default',
           states: [null, null],
           currentX: update.x,
           currentY: update.y,

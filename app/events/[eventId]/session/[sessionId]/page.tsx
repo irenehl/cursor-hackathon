@@ -14,6 +14,7 @@ import { PvpManager } from '@/game/entities/pvpManager'
 import { createPvpDuel, acceptPvpAndResolve, raiseHand } from '@/lib/supabase/rpc'
 import { PvpUi } from '@/components/game/pvp-ui'
 import { HostOverlay } from '@/components/game/host-overlay'
+import { getAvatarPath, CharacterType } from '@/game/config/characters'
 
 export default function SessionPage() {
   const params = useParams()
@@ -134,7 +135,7 @@ export default function SessionPage() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('display_name, avatar_id')
+          .select('display_name, avatar_id, character_type')
           .eq('user_id', user.id)
           .single()
 
@@ -143,15 +144,37 @@ export default function SessionPage() {
           return
         }
 
-        // Check if user is host
+        // Check if user is host and verify access for private events
         const { data: eventData } = await supabase
           .from('events')
-          .select('host_user_id')
+          .select('host_user_id, visibility')
           .eq('id', eventId)
           .single()
 
-        if (eventData) {
-          setIsHost(eventData.host_user_id === user.id)
+        if (!eventData) {
+          setError('Event not found')
+          return
+        }
+
+        const isHost = eventData.host_user_id === user.id
+        setIsHost(isHost)
+
+        // For private events, verify user has access (host or ticket holder)
+        if (eventData.visibility === 'private' && !isHost) {
+          // Check if user has an assigned ticket for this event
+          const { data: ticketData } = await supabase
+            .from('tickets')
+            .select('code')
+            .eq('event_id', eventId)
+            .eq('assigned_user_id', user.id)
+            .limit(1)
+            .single()
+
+          if (!ticketData) {
+            // User doesn't have access, redirect to ticket page
+            router.push(`/events/${eventId}/ticket`)
+            return
+          }
         }
 
         // Initialize PixiJS with the container element
@@ -237,25 +260,28 @@ export default function SessionPage() {
 
         // Create local player
         const avatarId = profile.avatar_id || 1
-        const avatarPath = `/assets/avatars/avatar-${avatarId}.png`
+        const characterType = (profile.character_type || 'default') as CharacterType
+        const avatarPath = getAvatarPath(characterType, avatarId)
         
         // Start at center of map
         const initialX = mapBounds.width / 2
         const initialY = mapBounds.height / 2
 
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:before createLocalPlayer', message: 'before createLocalPlayer', data: { avatarPath }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:before createLocalPlayer', message: 'before createLocalPlayer', data: { avatarPath, characterType }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
         // #endregion
         const localPlayer = await playerManager.createLocalPlayer(
           {
             userId: user.id,
             displayName: profile.display_name || 'Player',
             avatarId,
+            characterType,
           },
           {
             userId: user.id,
             displayName: profile.display_name || 'Player',
             avatarId,
+            characterType,
             x: initialX,
             y: initialY,
             dir: 0,
@@ -282,7 +308,8 @@ export default function SessionPage() {
           sessionId,
           user.id,
           profile.display_name || 'Player',
-          avatarId
+          avatarId,
+          characterType
         )
 
         // Create PvP manager
@@ -465,7 +492,7 @@ export default function SessionPage() {
         positionBroadcastIntervalRef.current = positionUpdateInterval
 
         // Set up proximity checking
-        proximityCheckIntervalRef.current = setInterval(() => {
+        proximityCheckIntervalRef.current = setInterval(async () => {
           if (!mounted || !localPlayerRef.current || !instanceChannelRef.current || !pvpManagerRef.current) {
             return
           }
@@ -507,17 +534,20 @@ export default function SessionPage() {
               const presenceState = instanceChannelRef.current.getRemotePlayers()
               const presence = presenceState.get(userId)
               if (presence) {
-                const avatarPath = `/assets/avatars/avatar-${presence.avatarId}.png`
-                playerManagerRef.current?.createRemotePlayer(
+                const remoteCharacterType = (presence.characterType || 'default') as CharacterType
+                const avatarPath = getAvatarPath(remoteCharacterType, presence.avatarId)
+                await playerManagerRef.current?.createRemotePlayer(
                   {
                     userId: presence.userId,
                     displayName: presence.displayName,
                     avatarId: presence.avatarId,
+                    characterType: remoteCharacterType,
                   },
                   {
                     userId: presence.userId,
                     displayName: presence.displayName,
                     avatarId: presence.avatarId,
+                    characterType: remoteCharacterType,
                     x: presence.currentX,
                     y: presence.currentY,
                     dir: presence.currentDir,
@@ -533,6 +563,7 @@ export default function SessionPage() {
                   userId: remoteState.userId,
                   displayName: remoteState.displayName,
                   avatarId: remoteState.avatarId,
+                  characterType: (remoteState.characterType || 'default') as CharacterType,
                   x: remoteState.currentX,
                   y: remoteState.currentY,
                   dir: remoteState.currentDir,
@@ -716,13 +747,13 @@ export default function SessionPage() {
 
   if (error) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-8">
+      <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-background">
         <div className="max-w-md w-full">
-          <h1 className="text-2xl font-bold mb-4 text-red-600">Error</h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+          <h1 className="text-2xl font-bold mb-4 text-accent">Error</h1>
+          <p className="text-text-muted mb-4">{error}</p>
           <button
             onClick={() => router.push('/events')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-accent text-text-inverse rounded-lg hover:bg-accent-hover transition-colors"
           >
             Back to Events
           </button>
@@ -734,8 +765,11 @@ export default function SessionPage() {
   return (
     <main className="relative w-full h-screen overflow-hidden">
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
-          <div className="text-white text-xl">Loading game...</div>
+        <div className="absolute inset-0 flex items-center justify-center bg-midnight/90 z-10 backdrop-blur-sm">
+          <div className="text-center">
+            <div className="text-text-inverse text-2xl mb-4 animate-pulse">🎮</div>
+            <div className="text-text-inverse text-xl font-mono">Loading your 2D destiny...</div>
+          </div>
         </div>
       )}
       <div
@@ -743,44 +777,68 @@ export default function SessionPage() {
         className="w-full h-full"
         style={{ display: 'block' }}
       />
-      <div className="absolute top-4 left-4 text-white bg-black bg-opacity-50 p-2 rounded text-sm space-y-1">
-        <div>Use WASD or Arrow Keys to move</div>
+      {/* Controls Hint - Retro Game Tutorial Style */}
+      <div 
+        className="absolute top-4 left-4 text-text-inverse bg-midnight/90 border-2 border-teal p-3 rounded-lg text-sm space-y-2 shadow-xl"
+        style={{
+          fontFamily: 'monospace',
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+        }}
+      >
+        <div className="text-cream font-semibold">CONTROLS:</div>
+        <div className="text-xs text-cream/90">WASD / Arrow Keys</div>
         <button
           onClick={() => router.push('/events')}
-          className="text-xs underline hover:no-underline"
+          className="text-xs text-cream hover:text-accent-muted underline hover:no-underline transition-colors mt-2 block"
         >
           ← Leave Session
         </button>
       </div>
 
-      {/* Players Online Overlay */}
-      <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white p-3 rounded-lg text-sm max-w-xs">
-        <div className="font-semibold mb-2">Players Online ({playersOnline.length})</div>
+      {/* Players Online Overlay - Retro Terminal Style */}
+      <div 
+        className="absolute top-4 right-4 bg-midnight/90 border-2 border-teal text-text-inverse p-3 rounded-lg text-sm max-w-xs shadow-xl"
+        style={{
+          fontFamily: 'monospace',
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+        }}
+      >
+        <div className="font-semibold mb-2 text-cream uppercase tracking-wider text-xs">
+          Players Online ({playersOnline.length})
+        </div>
         <div className="space-y-1 max-h-32 overflow-y-auto">
-          {playersOnline.map((player) => (
-            <div key={player.userId} className="text-xs">
-              {player.displayName}
-            </div>
-          ))}
+          {playersOnline.length === 0 ? (
+            <div className="text-xs text-cream/70 italic">Just you here</div>
+          ) : (
+            playersOnline.map((player) => (
+              <div key={player.userId} className="text-xs text-cream font-mono">
+                • {player.displayName}
+              </div>
+            ))
+          )}
         </div>
       </div>
 
-      {/* Raise Hand Button */}
+      {/* Raise Hand Button - Retro Game Button Style */}
       <div className="absolute bottom-4 left-4">
         <button
           onClick={handleRaiseHand}
           disabled={handState !== 'idle'}
-          className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+          className={`px-6 py-3 rounded-lg font-bold transition-all duration-150 border-2 ${
             handState === 'idle'
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              ? 'bg-accent hover:bg-accent-hover text-text-inverse border-accent/50 active:scale-95'
               : handState === 'queued'
-              ? 'bg-yellow-600 text-white cursor-not-allowed'
-              : 'bg-green-600 text-white cursor-not-allowed'
+              ? 'bg-accent-muted text-midnight cursor-not-allowed border-accent-muted/50'
+              : 'bg-teal text-text-inverse cursor-not-allowed border-teal/50'
           }`}
+          style={{
+            textShadow: handState === 'idle' ? '1px 1px 0px rgba(0, 0, 0, 0.3)' : 'none',
+            boxShadow: handState === 'idle' ? '0 4px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)' : 'none',
+          }}
         >
           {handState === 'idle' && '✋ Raise Hand'}
-          {handState === 'queued' && '⏳ En cola...'}
-          {handState === 'granted' && '✅ Turno otorgado'}
+          {handState === 'queued' && '⏳ In Queue...'}
+          {handState === 'granted' && '✅ Turn Granted!'}
         </button>
       </div>
 

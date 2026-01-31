@@ -13,7 +13,16 @@ export async function joinEvent(eventId: string, ticketCode: string) {
   if (error) {
     throw new Error(error.message || 'Failed to join event')
   }
-  // The SQL function returns a plain UUID (the session_id)
+  return { session_id: data as string }
+}
+
+export async function joinPublicEvent(eventId: string) {
+  const { data, error } = await supabase.rpc('join_public_event', {
+    p_event_id: eventId,
+  })
+  if (error) {
+    throw new Error(error.message || 'Failed to join event')
+  }
   return { session_id: data as string }
 }
 

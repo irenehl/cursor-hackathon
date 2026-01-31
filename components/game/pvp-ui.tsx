@@ -47,41 +47,62 @@ export function PvpUi({
 
   return (
     <>
-      {/* Challenge button when near a player */}
+      {/* Challenge button when near a player - Retro game button style */}
       {nearbyPlayer && !challengeReceived && (
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-20">
           <button
             onClick={handleChallenge}
             disabled={isChallenging}
-            className="px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white font-bold rounded-lg shadow-lg transition-colors"
+            className="px-8 py-4 bg-accent hover:bg-accent-hover disabled:bg-teal disabled:opacity-70 text-text-inverse font-bold rounded-lg shadow-xl border-2 border-text-inverse/20 hover:border-text-inverse/40 transition-all duration-150 active:scale-95"
+            style={{
+              textShadow: '2px 2px 0px rgba(0, 0, 0, 0.3)',
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+            }}
           >
-            {isChallenging ? 'Desafiando...' : `Desafiar a ${nearbyPlayer.displayName}`}
+            {isChallenging ? '⚔️ Challenging...' : `⚔️ Challenge ${nearbyPlayer.displayName}`}
           </button>
         </div>
       )}
 
-      {/* Accept challenge UI */}
+      {/* Accept challenge UI - Retro game modal */}
       {challengeReceived && (
-        <div className="absolute inset-0 flex items-center justify-center z-30 bg-black bg-opacity-50">
-          <div className="bg-gray-800 p-6 rounded-lg shadow-xl border-2 border-yellow-500">
-            <h3 className="text-xl font-bold text-white mb-4 text-center">
-              ¡Desafío recibido!
-            </h3>
-            <p className="text-white mb-6 text-center">
-              {challengeReceived.fromDisplayName} te desafía a un duelo
-            </p>
+        <div className="absolute inset-0 flex items-center justify-center z-30 bg-midnight/80 backdrop-blur-sm">
+          <div 
+            className="bg-surface-elevated border-4 border-accent p-8 rounded-lg shadow-2xl text-text max-w-md mx-4"
+            style={{
+              boxShadow: '0 8px 16px rgba(0, 0, 0, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.1)',
+              borderStyle: 'double',
+            }}
+          >
+            <div className="text-center mb-6">
+              <div className="text-4xl mb-3">⚔️</div>
+              <h3 className="text-2xl font-bold text-text mb-2">
+                Challenge Received!
+              </h3>
+              <p className="text-text-muted">
+                <strong className="text-text">{challengeReceived.fromDisplayName}</strong> challenges you to a duel
+              </p>
+            </div>
             <div className="flex gap-4">
               <button
                 onClick={handleAccept}
-                className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors"
+                className="flex-1 px-6 py-3 bg-teal hover:opacity-90 text-text-inverse font-bold rounded-lg transition-all duration-150 active:scale-95 border-2 border-teal/50"
+                style={{
+                  textShadow: '1px 1px 0px rgba(0, 0, 0, 0.3)',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                }}
               >
-                Aceptar
+                ✓ Accept
               </button>
               <button
                 onClick={handleReject}
-                className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
+                className="flex-1 px-6 py-3 bg-accent hover:bg-accent-hover text-text-inverse font-bold rounded-lg transition-all duration-150 active:scale-95 border-2 border-accent/50"
+                style={{
+                  textShadow: '1px 1px 0px rgba(0, 0, 0, 0.3)',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                }}
               >
-                Rechazar
+                ✕ Reject
               </button>
             </div>
           </div>
