@@ -11,12 +11,16 @@ import { DebugStyleProbe } from '@/components/debug-style-probe'
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
+  display: 'swap',
+  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
 })
 
 const pressStart2P = Press_Start_2P({
   weight: '400',
   subsets: ['latin'],
   variable: '--font-press-start',
+  display: 'swap',
+  fallback: ['monospace'],
 })
 
 export const metadata: Metadata = {

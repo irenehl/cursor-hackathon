@@ -247,7 +247,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       return { error }
     } catch (err) {
       // Network errors mean auth is unavailable
-      const errorMsg = err?.message || String(err)
+      const errorMsg = err instanceof Error ? err.message : String(err)
       if (errorMsg.includes('fetch') || errorMsg.includes('network') || errorMsg.includes('Failed to fetch')) {
         console.warn('Supabase auth network error, consider using mock auth')
       }

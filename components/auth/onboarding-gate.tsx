@@ -36,6 +36,41 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
   const [avatarId, setAvatarId] = useState<number>(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Get nickname from user metadata or localStorage (for mock auth)
+  const getNickname = (): string | null => {
+    if (!user) return null
+    
+    // Check user metadata first (for mock auth)
+    if (user.user_metadata?.nickname) {
+      return user.user_metadata.nickname
+    }
+    
+    // Fallback to localStorage for mock auth
+    if (isMockAuth && typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('mock_user')
+        if (stored) {
+          const data = JSON.parse(stored)
+          return data.nickname || null
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+    
+    return null
+  }
+
+  const nickname = getNickname()
+
+  // Pre-fill display name with nickname if available
+  useEffect(() => {
+    if (nickname && !displayName) {
+      setDisplayName(nickname)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, nickname]) // Run when user or nickname changes
+
   // Check for OTP in URL (email magic link) - only run once on mount
   // The AuthProvider's onAuthStateChange handles profile fetching
   useEffect(() => {
@@ -96,10 +131,13 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
           <form
             onSubmit={async (e) => {
               e.preventDefault()
-              if (!displayName.trim() || !user) {
-                toast.error('Please enter a display name')
+              if (!user) {
+                toast.error('User not found')
                 return
               }
+
+              // Use display name if provided, otherwise fall back to nickname
+              const finalDisplayName = displayName.trim() || nickname || 'Player'
 
               setIsSubmitting(true)
               
@@ -107,7 +145,7 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
                 // Save to localStorage for mock auth
                 const mockProfile = {
                   user_id: user.id,
-                  display_name: displayName.trim(),
+                  display_name: finalDisplayName,
                   avatar_id: avatarId,
                   character_type: characterType,
                 }
@@ -121,7 +159,7 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
                   .upsert(
                     {
                       user_id: user.id,
-                      display_name: displayName.trim(),
+                      display_name: finalDisplayName,
                       avatar_id: avatarId,
                       character_type: characterType,
                     },
@@ -148,8 +186,8 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Your name"
-              required
+              placeholder={nickname || "Your name"}
+              required={!nickname}
             />
 
             <div>
@@ -233,7 +271,7 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
 
             <button
               type="submit"
-              disabled={isSubmitting || !displayName.trim()}
+              disabled={isSubmitting || (!displayName.trim() && !nickname)}
               className="w-full rounded-lg bg-accent px-4 py-2 text-text-inverse hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
             >
               {isSubmitting ? 'Creating your character...' : 'Enter the 2D Realm'}
