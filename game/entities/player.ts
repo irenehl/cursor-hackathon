@@ -45,7 +45,7 @@ export class Player {
       this.avatarTexture = await Texture.fromURL(avatarPath)
     } catch (error: any) {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'player.ts:loadAvatar:catch', message: 'loadAvatar failed', data: { avatarPath, errMessage: error?.message } }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+      fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'player.ts:loadAvatar:catch', message: 'loadAvatar failed', data: { avatarPath, errMessage: error?.message }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
       // #endregion
       console.warn(`Failed to load avatar from ${avatarPath}, using fallback`, error)
       // Create a simple colored rectangle as fallback
@@ -112,7 +112,7 @@ export class Player {
       this.container.addChild(this.hatOverlay)
     } catch (error: any) {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'player.ts:loadHatOverlay:catch', message: 'loadHatOverlay failed', data: { hatPath, errMessage: error?.message } }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+      fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'player.ts:loadHatOverlay:catch', message: 'loadHatOverlay failed', data: { hatPath, errMessage: error?.message }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
       // #endregion
       console.warn(`Failed to load hat overlay from ${hatPath}, using fallback`, error)
       // Create a simple red rectangle as fallback hat

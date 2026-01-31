@@ -412,3 +412,45 @@
 {"hypothesisId":"H1","location":"auth-context:fetchProfile:ok","message":"fetchProfile ok","data":{},"timestamp":1769882584785,"sessionId":"debug-session"}
 {"hypothesisId":"H1","location":"auth-context:fetchProfile:entry","message":"fetchProfile start","data":{"userId":"3a94f1ca-f694-47d6-8898-09c82557b6aa"},"timestamp":1769882637306,"sessionId":"debug-session"}
 {"hypothesisId":"H1","location":"auth-context:fetchProfile:ok","message":"fetchProfile ok","data":{},"timestamp":1769882637542,"sessionId":"debug-session"}
+{"hypothesisId":"H4","location":"supabase/client.ts:init","message":"supabase client init","data":{"hasUrl":true,"hasKey":true,"urlIsPlaceholder":false},"timestamp":1769883108033,"sessionId":"debug-session"}
+{"hypothesisId":"H4","location":"supabase/client.ts:init","message":"supabase client init","data":{"hasUrl":true,"hasKey":true,"urlIsPlaceholder":false},"timestamp":1769883108493,"sessionId":"debug-session"}
+{"hypothesisId":"H4","location":"supabase/client.ts:init","message":"supabase client init","data":{"hasUrl":true,"hasKey":true,"urlIsPlaceholder":false},"timestamp":1769883137990,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:getSession:before","message":"getSession start","data":{},"timestamp":1769883138025,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:getSession:after","message":"getSession result","data":{"hasSession":true},"timestamp":1769883138045,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:entry","message":"fetchProfile start","data":{"userId":"3a94f1ca-f694-47d6-8898-09c82557b6aa"},"timestamp":1769883138045,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:entry","message":"fetchProfile start","data":{"userId":"3a94f1ca-f694-47d6-8898-09c82557b6aa"},"timestamp":1769883138051,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:ok","message":"fetchProfile ok","data":{},"timestamp":1769883139140,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:ok","message":"fetchProfile ok","data":{},"timestamp":1769883139140,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:entry","message":"fetchProfile start","data":{"userId":"3a94f1ca-f694-47d6-8898-09c82557b6aa"},"timestamp":1769883148538,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:ok","message":"fetchProfile ok","data":{},"timestamp":1769883148760,"sessionId":"debug-session"}
+{"hypothesisId":"H4","location":"supabase/client.ts:init","message":"supabase client init","data":{"hasUrl":true,"hasKey":true,"urlIsPlaceholder":false},"timestamp":1769883192735,"sessionId":"debug-session"}
+{"hypothesisId":"H4","location":"supabase/client.ts:init","message":"supabase client init","data":{"hasUrl":true,"hasKey":true,"urlIsPlaceholder":false},"timestamp":1769883193164,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:getSession:before","message":"getSession start","data":{},"timestamp":1769883193256,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:getSession:after","message":"getSession result","data":{"hasSession":true},"timestamp":1769883193268,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:entry","message":"fetchProfile start","data":{"userId":"3a94f1ca-f694-47d6-8898-09c82557b6aa"},"timestamp":1769883193268,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:entry","message":"fetchProfile start","data":{"userId":"3a94f1ca-f694-47d6-8898-09c82557b6aa"},"timestamp":1769883193275,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:ok","message":"fetchProfile ok","data":{},"timestamp":1769883193482,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:ok","message":"fetchProfile ok","data":{},"timestamp":1769883193483,"sessionId":"debug-session"}
+{"hypothesisId":"H5","location":"session/page:init:start","message":"session init start","data":{},"timestamp":1769883193645,"sessionId":"debug-session"}
+{"hypothesisId":"H5","location":"session/page:init:start","message":"session init start","data":{},"timestamp":1769883193646,"sessionId":"debug-session"}
+{"hypothesisId":"H3","location":"session/page:before loadMap","message":"before gameMap.loadMap","data":{},"timestamp":1769883195052,"sessionId":"debug-session"}
+{"hypothesisId":"H3","location":"session/page:after loadMap","message":"after gameMap.loadMap","data":{},"timestamp":1769883195068,"sessionId":"debug-session"}
+{"hypothesisId":"H3","location":"session/page:before createLocalPlayer","message":"before createLocalPlayer","data":{"avatarPath":"/assets/avatars/avatar-3.png"},"timestamp":1769883195070,"sessionId":"debug-session"}
+{"hypothesisId":"H3","location":"player.ts:loadAvatar:entry","message":"loadAvatar start","data":{"avatarPath":"/assets/avatars/avatar-3.png"},"timestamp":1769883195071,"sessionId":"debug-session"}
+{"hypothesisId":"H4","location":"supabase/client.ts:init","message":"supabase client init","data":{"hasUrl":true,"hasKey":true,"urlIsPlaceholder":false},"timestamp":1769883195180,"sessionId":"debug-session"}
+{"hypothesisId":"H3","location":"player.ts:loadAvatar:catch","message":"loadAvatar failed","data":{"avatarPath":"/assets/avatars/avatar-3.png"},"timestamp":1769883195229,"sessionId":"debug-session"}
+{"hypothesisId":"H3","location":"session/page:after createLocalPlayer","message":"after createLocalPlayer","data":{},"timestamp":1769883195234,"sessionId":"debug-session"}
+{"hypothesisId":"H3","location":"session/page:before loadHatOverlay","message":"before loadHatOverlay","data":{"path":"/assets/overlays/punishment-hat.png"},"timestamp":1769883195234,"sessionId":"debug-session"}
+{"hypothesisId":"H3","location":"player.ts:loadHatOverlay:entry","message":"loadHatOverlay start","data":{"hatPath":"/assets/overlays/punishment-hat.png"},"timestamp":1769883195234,"sessionId":"debug-session"}
+{"hypothesisId":"H4","location":"supabase/client.ts:init","message":"supabase client init","data":{"hasUrl":true,"hasKey":true,"urlIsPlaceholder":false},"timestamp":1769883195615,"sessionId":"debug-session"}
+{"hypothesisId":"H3","location":"player.ts:loadHatOverlay:catch","message":"loadHatOverlay failed","data":{"hatPath":"/assets/overlays/punishment-hat.png"},"timestamp":1769883195627,"sessionId":"debug-session"}
+{"hypothesisId":"H3","location":"session/page:after loadHatOverlay","message":"after loadHatOverlay","data":{},"timestamp":1769883195629,"sessionId":"debug-session"}
+{"hypothesisId":"H3","location":"player.ts:loadAvatar:entry","message":"loadAvatar start","data":{"avatarPath":"/assets/avatars/avatar-1.png"},"timestamp":1769883215852,"sessionId":"debug-session"}
+{"hypothesisId":"H4","location":"supabase/client.ts:init","message":"supabase client init","data":{"hasUrl":true,"hasKey":true,"urlIsPlaceholder":false},"timestamp":1769883216463,"sessionId":"debug-session"}
+{"hypothesisId":"H3","location":"player.ts:loadAvatar:catch","message":"loadAvatar failed","data":{"avatarPath":"/assets/avatars/avatar-1.png"},"timestamp":1769883216478,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:entry","message":"fetchProfile start","data":{"userId":"3a94f1ca-f694-47d6-8898-09c82557b6aa"},"timestamp":1769883228202,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:ok","message":"fetchProfile ok","data":{},"timestamp":1769883228410,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:entry","message":"fetchProfile start","data":{"userId":"3a94f1ca-f694-47d6-8898-09c82557b6aa"},"timestamp":1769883245420,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:ok","message":"fetchProfile ok","data":{},"timestamp":1769883245609,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:entry","message":"fetchProfile start","data":{"userId":"3a94f1ca-f694-47d6-8898-09c82557b6aa"},"timestamp":1769883253188,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:ok","message":"fetchProfile ok","data":{},"timestamp":1769883253367,"sessionId":"debug-session"}
