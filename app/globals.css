@@ -22,5 +22,70 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.font-pixel {
+  font-family: var(--font-press-start), monospace;
+}
+
+/* Landing theme: dark (default for main and when data-theme="dark") */
+main,
+main[data-theme="dark"] {
+  --landing-bg: #04151f;
+  --landing-bg-alt: #031219;
+  --landing-bg-card: #04151f;
+  --landing-bg-feature: rgba(24, 58, 55, 0.3);
+  --landing-bg-section: rgba(24, 58, 55, 0.1);
+  --landing-text: #efd6ac;
+  --landing-text-muted: rgba(239, 214, 172, 0.6);
+  --landing-text-muted-2: rgba(239, 214, 172, 0.5);
+  --landing-text-heading: #fff;
+  --landing-border: rgba(239, 214, 172, 0.1);
+  --landing-border-strong: rgba(239, 214, 172, 0.2);
+  --landing-accent: #c44900;
+  --landing-badge-bg: rgba(239, 214, 172, 0.05);
+  --landing-badge-border: rgba(239, 214, 172, 0.2);
+  --landing-hero-gradient-from: #efd6ac;
+  --landing-hero-gradient-to: rgba(239, 214, 172, 0.7);
+  --landing-price-basic-bg: #183a37;
+  --landing-price-pro-bg: #432534;
+  --landing-price-pro-btn-bg: #efd6ac;
+  --landing-price-pro-btn-text: #432534;
+  --landing-step-dot: #efd6ac;
+  --landing-step-num: rgba(239, 214, 172, 0.1);
+  --landing-icon-check: #efd6ac;
+  --landing-icon-ghost: #efd6ac;
+  --landing-x-bg: #432534;
+  --landing-check-bg: #183a37;
+}
+
+/* Landing theme: light */
+main[data-theme="light"] {
+  --landing-bg: #f8f6f1;
+  --landing-bg-alt: #eeebe5;
+  --landing-bg-card: #fff;
+  --landing-bg-feature: rgba(24, 58, 55, 0.08);
+  --landing-bg-section: rgba(24, 58, 55, 0.06);
+  --landing-text: #2c2620;
+  --landing-text-muted: #5c534a;
+  --landing-text-muted-2: #6b6158;
+  --landing-text-heading: #1a1612;
+  --landing-border: rgba(44, 38, 32, 0.12);
+  --landing-border-strong: rgba(44, 38, 32, 0.2);
+  --landing-accent: #c44900;
+  --landing-badge-bg: rgba(44, 38, 32, 0.06);
+  --landing-badge-border: rgba(44, 38, 32, 0.2);
+  --landing-hero-gradient-from: #2c2620;
+  --landing-hero-gradient-to: #5c534a;
+  --landing-price-basic-bg: #183a37;
+  --landing-price-pro-bg: #432534;
+  --landing-price-pro-btn-bg: #efd6ac;
+  --landing-price-pro-btn-text: #432534;
+  --landing-step-dot: #5c534a;
+  --landing-step-num: rgba(44, 38, 32, 0.12);
+  --landing-icon-check: #2c2620;
+  --landing-icon-ghost: #5c534a;
+  --landing-x-bg: #f5e6e8;
+  --landing-check-bg: #e5f0ef;
 }
