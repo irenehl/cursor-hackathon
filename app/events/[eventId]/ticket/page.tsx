@@ -35,7 +35,7 @@ export default function TicketPage() {
         .single()
 
       if (error) {
-        console.error('Error fetching event:', error)
+        console.error('Error fetching event:', error.message, error.code, error.details)
         toast.error('Event not found')
         router.push('/events')
         return
