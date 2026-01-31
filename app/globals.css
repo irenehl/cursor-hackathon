@@ -1,9 +1,11 @@
 @import "tailwindcss";
 
-/* ==========================================================================
-   Design system — palette (light-first)
-   #04151f  #183a37  #efd6ac  #c44900  #432534
-   ========================================================================== */
+/*
+==========================================================================
+  Design system — palette (light-first)
+  #04151f  #183a37  #efd6ac  #c44900  #432534
+==========================================================================
+*/
 
 :root {
   /* Raw palette */
@@ -14,11 +16,11 @@
   --palette-plum: #432534;
 
   /* Light-priority semantic tokens */
-  --color-background: #faf6ef;        /* lightest: cream + white */
-  --color-surface: #f5ebdc;          /* soft cream */
+  --color-background: #faf6ef; /* lightest: cream + white */
+  --color-surface: #f5ebdc; /* soft cream */
   --color-surface-elevated: #efd6ac; /* palette cream */
-  --color-border: #e5d4b8;           /* cream muted */
-  --color-border-strong: #183a37;     /* teal for emphasis */
+  --color-border: #e5d4b8; /* cream muted */
+  --color-border-strong: #183a37; /* teal for emphasis */
 
   --color-text: #04151f;
   --color-text-muted: #183a37;
@@ -26,7 +28,7 @@
 
   --color-accent: #c44900;
   --color-accent-hover: #a33d00;
-  --color-accent-muted: #e8a880;     /* ember tint for subtle use */
+  --color-accent-muted: #e8a880; /* ember tint for subtle use */
   --color-accent-secondary: #432534;
   --color-accent-secondary-muted: #6b3d52; /* plum tint */
 
@@ -62,7 +64,13 @@
 body {
   color: var(--color-text);
   background: var(--color-background);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+    "Helvetica Neue", sans-serif;
+}
+
+.font-pixel {
+  font-family: var(--font-press-start), monospace;
 }
 
 /* Fight brawl overlay (PvP duel) */
