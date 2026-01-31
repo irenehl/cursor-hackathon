@@ -13,22 +13,22 @@ todos:
     status: pending
   - id: supabase-realtime-db-broadcast
     content: Add realtime.messages policy and use realtime.send() in RPCs for hand_granted / penalty / pvp events.
-    status: pending
+    status: completed
   - id: client-auth-profile
     content: Implement auth flow + profile upsert (displayName/avatarId once) and gating before entering an event.
-    status: pending
+    status: completed
   - id: client-pages
     content: "Implement 3 screens: event list, ticket entry, session/map page routing and data fetch."
-    status: pending
+    status: completed
   - id: pixi-map
     content: Implement Pixi canvas mount, map, avatars, hat overlay, movement + bounds.
-    status: pending
+    status: completed
   - id: realtime-presence-broadcast
     content: "Implement per-instance Realtime channel: presence tracking, 10–15Hz pos_update broadcast, remote interpolation."
-    status: pending
+    status: completed
   - id: raise-hand-ui
     content: Implement raise hand button/state + 5% ignored toast + host queue/grant UI.
-    status: pending
+    status: completed
   - id: pvp-flow
     content: Implement proximity detect, challenge/accept UI, freeze+fight animation, and consume server-resolved winner.
     status: pending
