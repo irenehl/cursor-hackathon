@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { PixiAppManager } from '@/game/engine/pixiApp'
 import { GameMap } from '@/game/world/map'
+import { getDefaultEventMapStructure } from '@/game/world/eventMapStructure'
 import { PlayerManager } from '@/game/entities/playerManager'
 import { LocalPlayer } from '@/game/entities/localPlayer'
 import { Container } from 'pixi.js'
@@ -183,12 +184,16 @@ export default function SessionPage() {
         app.stage.addChild(worldContainer)
         app.stage.addChild(playersContainer)
 
-        // Create map (simple auditorium layout)
+        // Get shared map structure (same for all players - mismo mundo)
+        const structure = getDefaultEventMapStructure(1200, 800)
+        const mapPixelWidth = structure.tilemapData.width * structure.tileSize
+        const mapPixelHeight = structure.tilemapData.height * structure.tileSize
+
         const mapBounds = {
           x: 0,
           y: 0,
-          width: 1200,
-          height: 800,
+          width: mapPixelWidth,
+          height: mapPixelHeight,
         }
         const punishmentCorner = {
           x: 50,
@@ -201,34 +206,20 @@ export default function SessionPage() {
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:before loadMap', message: 'before gameMap.loadMap', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
         // #endregion
-        
-        // Generate tilemap data and load with tilemap system
-        const tilemapData = gameMap.generateDefaultTilemap()
-        await gameMap.loadMap(undefined, tilemapData)
+
+        await gameMap.loadMap(undefined, structure.tilemapData)
         
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:after loadMap', message: 'after gameMap.loadMap', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
         // #endregion
         
-        // Add some decorative objects to make the map more interesting
-        // Place a few houses and tents randomly
-        const objectPositions = [
-          { id: 'house1', x: 200, y: 150 },
-          { id: 'house2', x: 400, y: 200 },
-          { id: 'tent1', x: 600, y: 300 },
-          { id: 'tent2', x: 800, y: 250 },
-          { id: 'stone1', x: 300, y: 500 },
-          { id: 'stone2', x: 700, y: 600 },
-          { id: 'grass1', x: 150, y: 400 },
-          { id: 'grass2', x: 500, y: 450 },
-          { id: 'grass3', x: 900, y: 500 },
-        ]
-        
-        for (const obj of objectPositions) {
+        // Place objects (houses layer 0, adornos layer 1 - above houses, below player)
+        for (const obj of structure.objectPlacements) {
           await gameMap.placeObject({
-            objectId: obj.id,
+            objectId: obj.objectId,
             x: obj.x,
             y: obj.y,
+            layer: obj.layer,
           })
         }
         

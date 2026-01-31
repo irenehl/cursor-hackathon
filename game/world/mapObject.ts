@@ -5,6 +5,8 @@ export interface MapObjectConfig {
   objectId: string // e.g., 'house1', 'tent2', 'stone1'
   x: number // world x position
   y: number // world y position
+  /** 0 = houses/tents (below decorations), 1 = adornos (highest z, below player) */
+  layer?: number
   scale?: number // optional scale (default: 1)
   anchor?: { x: number; y: number } // anchor point (default: 0.5, 0.5 for center)
 }
@@ -145,6 +147,13 @@ export class MapObject {
    */
   getBaseY(): number {
     return this.baseY
+  }
+
+  /**
+   * Get layer (0 = houses, 1 = decorations) for z-order
+   */
+  getLayer(): number {
+    return this.config.layer ?? 0
   }
 
   /**

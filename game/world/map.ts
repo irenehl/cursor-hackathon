@@ -1,6 +1,7 @@
 import { Container, Graphics, Sprite, Texture } from 'pixi.js'
 import { Tilemap, TilemapData } from './tilemap'
 import { MapObject, MapObjectConfig } from './mapObject'
+import { getDefaultEventMapStructure, type EventMapStructure } from './eventMapStructure'
 
 export interface MapBounds {
   x: number
@@ -29,22 +30,22 @@ export class GameMap {
     this.container = container
     this.bounds = bounds
     this.punishmentCorner = punishmentCorner
-    
-    // Create container for map objects (for depth sorting)
+
+    // Create container for map objects (above tiles, below player)
     this.objectsContainer = new Container()
     this.objectsContainer.x = bounds.x
     this.objectsContainer.y = bounds.y
-    this.container.addChild(this.objectsContainer)
+    this.container.addChild(this.objectsContainer) // after tilemap (index 0), so objects render on top of tiles
   }
 
   async loadMap(mapTexturePath?: string, tilemapData?: TilemapData): Promise<void> {
     // Use tilemap if tilemapData is provided, otherwise fallback to old method
     if (tilemapData) {
-      // Create tilemap container
+      // Create tilemap container - add at index 0 so field tiles are at bottom of Z
       const tilemapContainer = new Container()
       tilemapContainer.x = this.bounds.x
       tilemapContainer.y = this.bounds.y
-      this.container.addChild(tilemapContainer)
+      this.container.addChildAt(tilemapContainer, 0)
 
       // Initialize and load tilemap
       this.tilemap = new Tilemap(tilemapContainer, 'fieldsTileset', 32, 32)
@@ -93,7 +94,7 @@ export class GameMap {
 
   /**
    * Generate a simple tilemap data for the map bounds
-   * Fills with random grass/field tiles
+   * Fills with random grass/field tiles (legacy)
    */
   generateDefaultTilemap(): TilemapData {
     const tileWidth = 32
@@ -102,17 +103,25 @@ export class GameMap {
     const height = Math.ceil(this.bounds.height / tileHeight)
     const tiles: number[] = []
 
-    // Fill with random tiles (1-64 from the tileset)
-    // Use tiles 1-20 for variety (grass/field patterns)
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        // Use a simple pattern: alternating between grass and field tiles
         const tileId = (x + y) % 3 === 0 ? Math.floor(Math.random() * 20) + 1 : Math.floor(Math.random() * 10) + 1
         tiles.push(tileId)
       }
     }
 
     return { width, height, tiles }
+  }
+
+  /**
+   * Get the shared event map structure (same for all players).
+   * Uses default structure; can be extended to accept custom structure for dynamic maps.
+   */
+  getEventMapStructure(customStructure?: EventMapStructure): EventMapStructure {
+    if (customStructure) {
+      return customStructure
+    }
+    return getDefaultEventMapStructure(this.bounds.width, this.bounds.height)
   }
 
   /**
@@ -135,11 +144,16 @@ export class GameMap {
   }
 
   /**
-   * Sort objects by Y position (objects further down render on top)
+   * Sort objects: tiles < houses < decorations < player
+   * Layer 0 = houses, Layer 1 = adornos (decorations). Lower layer first, then by Y.
    */
   private sortObjectsByDepth(): void {
-    // Sort array by Y position
-    this.objects.sort((a, b) => a.getBaseY() - b.getBaseY())
+    this.objects.sort((a, b) => {
+      const layerA = a.getLayer()
+      const layerB = b.getLayer()
+      if (layerA !== layerB) return layerA - layerB
+      return a.getBaseY() - b.getBaseY()
+    })
     
     // Update container children order
     for (let i = 0; i < this.objects.length; i++) {
