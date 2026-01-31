@@ -141,45 +141,52 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
 
               setIsSubmitting(true)
               
-              // Save profile to Supabase (required for RLS policies to work)
-              // Also save to localStorage for mock auth
-              const profileData = {
-                user_id: user.id,
-                display_name: finalDisplayName,
-                avatar_id: avatarId,
-                character_type: characterType,
-              }
-
-              // #region agent log
-              fetch('http://127.0.0.1:7252/ingest/dfa93302-39a4-440c-87d8-1ed057028eeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'onboarding-gate.tsx:beforeProfileUpsert',message:'About to upsert profile',data:{profileData,userId:user.id,userIdLength:user.id?.length,isMockAuth},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1,H2,H3'})}).catch(()=>{});
-              // #endregion
-
-              const { error: supabaseError } = await supabase
-                .from('profiles')
-                .upsert(profileData, {
-                  onConflict: 'user_id',
-                })
-
-              // #region agent log
-              fetch('http://127.0.0.1:7252/ingest/dfa93302-39a4-440c-87d8-1ed057028eeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'onboarding-gate.tsx:afterProfileUpsert',message:'Profile upsert result',data:{hasError:!!supabaseError,errorCode:supabaseError?.code,errorMessage:supabaseError?.message,errorDetails:supabaseError?.details,errorHint:supabaseError?.hint},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1,H2,H3,H4'})}).catch(()=>{});
-              // #endregion
-
-              if (supabaseError) {
-                console.error('Failed to save profile to Supabase:', supabaseError)
-                toast.error(supabaseError.message || 'Failed to save profile')
-                setIsSubmitting(false)
-                return
-              }
-
               if (isMockAuth) {
-                // Also save to localStorage for mock auth
-                saveMockProfileToStorage(profileData)
+                // Save to localStorage for mock auth
+                const mockProfile = {
+                  user_id: user.id,
+                  display_name: finalDisplayName,
+                  avatar_id: avatarId,
+                  character_type: characterType,
+                }
+                saveMockProfileToStorage(mockProfile)
+                await refreshProfile()
+                toast.success('Profile saved! Welcome to the 2D realm.')
+                setIsSubmitting(false)
+              } else {
+                // Save to Supabase
+                const { error } = await supabase
+                  .from('profiles')
+                  .upsert(
+                    {
+                      user_id: user.id,
+                      display_name: finalDisplayName,
+                      avatar_id: avatarId,
+                      character_type: characterType,
+                    },
+                    {
+                      onConflict: 'user_id',
+                    }
+                  )
+
+                if (error) {
+                  const isFkViolation =
+                    error.code === '23503' ||
+                    error.message?.includes('profiles_user_id_fkey')
+                  if (isFkViolation) {
+                    toast.error(
+                      'Your session may be out of date. Please sign out and sign in again, then save your profile.'
+                    )
+                  } else {
+                    toast.error(error.message || 'Failed to save profile')
+                  }
+                  setIsSubmitting(false)
+                } else {
+                  await refreshProfile()
+                  toast.success('Profile saved! Welcome to the 2D realm.')
+                  setIsSubmitting(false)
+                }
               }
-
-              await refreshProfile()
-              toast.success('Profile saved! Welcome to the 2D realm.')
-
-              setIsSubmitting(false)
             }}
             className="space-y-6"
           >

@@ -12,7 +12,7 @@ import { toast } from 'sonner'
 import { InstanceChannel } from '@/game/net/instanceChannel'
 import { PvpManager } from '@/game/entities/pvpManager'
 import { ChatProximityManager, ChatMessage } from '@/game/entities/chatProximityManager'
-import { createPvpDuel, acceptPvpAndResolve, raiseHand, joinOrCreateProximityChat, leaveProximityChat, sendProximityMessage, getProximityChatHistory } from '@/lib/supabase/rpc'
+import { createPvpDuel, raiseHand, joinOrCreateProximityChat, leaveProximityChat, sendProximityMessage, getProximityChatHistory } from '@/lib/supabase/rpc'
 import { PvpUi } from '@/components/game/pvp-ui'
 import { ChatUi } from '@/components/game/chat-ui'
 import { HostOverlay } from '@/components/game/host-overlay'
@@ -34,7 +34,6 @@ export default function SessionPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [nearbyPlayer, setNearbyPlayer] = useState<{ userId: string; displayName: string } | null>(null)
-  const [challengeReceived, setChallengeReceived] = useState<{ duelId: string; fromUserId: string; fromDisplayName: string } | null>(null)
   const [handState, setHandState] = useState<'idle' | 'queued' | 'granted'>('idle')
   const [playersOnline, setPlayersOnline] = useState<Array<{ userId: string; displayName: string }>>([])
   const [isHost, setIsHost] = useState(false)
@@ -73,32 +72,6 @@ export default function SessionPage() {
       console.error('Challenge error:', error)
     }
   }, [sessionId])
-
-  const handleAcceptChallenge = useCallback(async (duelId: string) => {
-    if (!pvpManagerRef.current || !localPlayerRef.current) return
-
-    try {
-      // Accept and resolve duel (server will broadcast pvp_resolved)
-      await acceptPvpAndResolve(duelId)
-      
-      // Clear challenge UI
-      pvpManagerRef.current.handleChallengeAccepted(duelId)
-      setChallengeReceived(null)
-
-      // The pvp_resolved handler will handle freeze + animation + winner/loser states
-    } catch (error: any) {
-      toast.error('Error al aceptar: ' + (error.message || 'Error desconocido'))
-      console.error('Accept challenge error:', error)
-      setChallengeReceived(null)
-      pvpManagerRef.current.clearChallenge()
-    }
-  }, [])
-
-  const handleRejectChallenge = useCallback(() => {
-    if (!pvpManagerRef.current) return
-    setChallengeReceived(null)
-    pvpManagerRef.current.clearChallenge()
-  }, [])
 
   const handleRaiseHand = useCallback(async () => {
     if (handState !== 'idle') return
@@ -348,30 +321,7 @@ export default function SessionPage() {
           setChatMessages((prev) => [...prev, message])
         })
 
-        // Handle PvP challenge received
-        pvpManager.onChallengeReceived((challenge) => {
-          // Get challenger display name from presence
-          const presenceState = instanceChannel.getPresenceState()
-          const challengerPresence = presenceState.get(challenge.fromUserId)
-          const challengerDisplayName = challengerPresence?.displayName || 'Unknown'
-          
-          setChallengeReceived({
-            duelId: challenge.duelId,
-            fromUserId: challenge.fromUserId,
-            fromDisplayName: challengerDisplayName,
-          })
-        })
-
-        // Handle challenge accepted (local player accepted)
-        pvpManager.onChallengeAccepted((duelId) => {
-          // Freeze both players and start fight animation
-          if (localPlayerRef.current) {
-            localPlayerRef.current.setPvpState('fighting')
-          }
-          // Remote player will be frozen when they receive pvp_resolved
-        })
-
-        // Handle duel resolved
+        // Handle duel resolved (PvP auto-resolves on challenge - no accept step)
         pvpManager.onDuelResolved((duel) => {
           const isWinner = duel.winnerId === user.id
           const isLoser = duel.loserId === user.id
@@ -435,31 +385,10 @@ export default function SessionPage() {
                 }
               }, 5000)
             }
-          } else if (event === 'pvp_challenge') {
-            // Handle incoming challenge
-            const challenge = {
-              duelId: payload.duelId,
-              fromUserId: payload.fromUserId,
-              toUserId: payload.toUserId,
-            }
-            pvpManager.handleChallengeReceived(challenge, user.id)
           } else if (event === 'pvp_resolved') {
-            // Handle duel resolution
-            // Get challenger/opponent from active duel or challenge
-            const activeDuel = pvpManager.getActiveDuel()
-            const activeChallenge = pvpManager.getActiveChallenge()
-            const pendingChallenge = pvpManager.getPendingChallenge()
-            
-            // Determine challenger/opponent IDs
-            let challengerId = user.id
-            let opponentId = user.id
-            if (activeChallenge) {
-              challengerId = activeChallenge.fromUserId
-              opponentId = activeChallenge.toUserId
-            } else if (pendingChallenge) {
-              challengerId = pendingChallenge.fromUserId
-              opponentId = pendingChallenge.toUserId
-            }
+            // Handle duel resolution (auto-resolved on challenge, no accept step)
+            const challengerId = payload.challengerId ?? payload.fromUserId ?? user.id
+            const opponentId = payload.opponentId ?? payload.toUserId ?? user.id
             
             const duel = {
               duelId: payload.duelId,
@@ -574,7 +503,8 @@ export default function SessionPage() {
           )
 
           // Set nearest player (if any) for PvP
-          if (nearby.length > 0 && !challengeReceived) {
+          const hasActiveChallenge = pvpManagerRef.current?.getActiveChallenge() !== null
+          if (nearby.length > 0 && !hasActiveChallenge) {
             const nearest = nearby[0]
             setNearbyPlayer({
               userId: nearest.userId,
@@ -1063,9 +993,6 @@ export default function SessionPage() {
       <PvpUi
         nearbyPlayer={nearbyPlayer}
         onChallenge={handleChallenge}
-        challengeReceived={challengeReceived}
-        onAcceptChallenge={handleAcceptChallenge}
-        onRejectChallenge={handleRejectChallenge}
       />
 
       {/* Chat UI */}
