@@ -20,7 +20,7 @@ export default function SessionPage() {
   const router = useRouter()
   const eventId = params.eventId as string
   const sessionId = params.sessionId as string
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const pixiAppRef = useRef<PixiAppManager | null>(null)
   const gameMapRef = useRef<GameMap | null>(null)
   const playerManagerRef = useRef<PlayerManager | null>(null)
@@ -107,8 +107,8 @@ export default function SessionPage() {
     let mounted = true
 
     async function initializeGame() {
-      if (!canvasRef.current) {
-        setError('Canvas element not found')
+      if (!containerRef.current) {
+        setError('Container element not found')
         return
       }
 
@@ -146,7 +146,7 @@ export default function SessionPage() {
           setIsHost(eventData.host_user_id === user.id)
         }
 
-        // Initialize PixiJS
+        // Initialize PixiJS with the container element
         const pixiApp = new PixiAppManager()
         const app = await pixiApp.initialize(
           {
@@ -155,7 +155,7 @@ export default function SessionPage() {
             backgroundColor: 0x1a1a1a,
             antialias: true,
           },
-          canvasRef.current
+          containerRef.current
         )
 
         if (!mounted) {
@@ -678,8 +678,8 @@ export default function SessionPage() {
           <div className="text-white text-xl">Loading game...</div>
         </div>
       )}
-      <canvas
-        ref={canvasRef}
+      <div
+        ref={containerRef}
         className="w-full h-full"
         style={{ display: 'block' }}
       />

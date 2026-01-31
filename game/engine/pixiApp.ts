@@ -11,10 +11,9 @@ export class PixiAppManager {
   private app: Application | null = null
   private ticker: Ticker | null = null
 
-  async initialize(config: PixiAppConfig, canvas: HTMLCanvasElement): Promise<Application> {
-    // Create PixiJS application with the provided canvas (PixiJS v7)
+  async initialize(config: PixiAppConfig, container: HTMLElement): Promise<Application> {
+    // Create PixiJS application - let PixiJS create its own canvas
     this.app = new Application({
-      view: canvas,
       width: config.width,
       height: config.height,
       backgroundColor: config.backgroundColor ?? 0x1a1a1a,
@@ -22,6 +21,9 @@ export class PixiAppManager {
       resolution: window.devicePixelRatio ?? 1,
       autoDensity: true,
     })
+
+    // Append the PixiJS-created canvas to the container
+    container.appendChild(this.app.view as HTMLCanvasElement)
 
     // Use the application's ticker
     this.ticker = this.app.ticker
