@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { CHARACTERS, CharacterType, getAvatarPath } from '@/game/config/characters'
+import { saveMockProfileToStorage } from '@/lib/auth/mock-auth-context'
 
 interface OnboardingGateProps {
   children: React.ReactNode
@@ -29,7 +30,7 @@ const AVATAR_COLORS = [
 export function OnboardingGate({ children }: OnboardingGateProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, session, profile, loading, refreshProfile } = useAuth()
+  const { user, session, profile, loading, refreshProfile, isMockAuth } = useAuth()
   const [displayName, setDisplayName] = useState('')
   const [characterType, setCharacterType] = useState<CharacterType>('default')
   const [avatarId, setAvatarId] = useState<number>(1)
@@ -42,8 +43,21 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Bypass auth gate for landing page and auth page
-  if (pathname === '/' || pathname === '/auth') {
+  // Redirect to auth page if not authenticated (useEffect to avoid render-time navigation)
+  useEffect(() => {
+    // Bypass redirect for landing page, auth page, and waitlist page
+    if (pathname === '/' || pathname === '/auth' || pathname === '/waitlist') {
+      return
+    }
+
+    // Only redirect if we're done loading and user is not authenticated
+    if (!loading && (!user || !session)) {
+      router.push('/auth')
+    }
+  }, [loading, user, session, pathname, router])
+
+  // Bypass auth gate for landing page, auth page, and waitlist page
+  if (pathname === '/' || pathname === '/auth' || pathname === '/waitlist') {
     return <>{children}</>
   }
 
@@ -59,9 +73,8 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
     )
   }
 
-  // If not authenticated, redirect to auth page
+  // If not authenticated, show nothing while redirect happens
   if (!user || !session) {
-    router.push('/auth')
     return null
   }
 
@@ -69,10 +82,10 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
   if (!profile) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md rounded-2xl border border-border p-8 shadow-lg">
           <div className="text-center mb-6">
             <div className="text-4xl mb-4">🎭</div>
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-text">
+            <h1 className="font-pixel text-2xl md:text-3xl tracking-tight mb-2 text-text">
               Character Creation
             </h1>
             <p className="text-text-muted text-sm">
@@ -83,36 +96,49 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
           <form
             onSubmit={async (e) => {
               e.preventDefault()
-              if (!displayName.trim()) {
+              if (!displayName.trim() || !user) {
                 toast.error('Please enter a display name')
                 return
               }
 
               setIsSubmitting(true)
               
-              // Upsert profile
-              const { error } = await supabase
-                .from('profiles')
-                .upsert(
-                  {
-                    user_id: user.id,
-                    display_name: displayName.trim(),
-                    avatar_id: avatarId,
-                    character_type: characterType,
-                  },
-                  {
-                    onConflict: 'user_id',
-                  }
-                )
-
-              setIsSubmitting(false)
-
-              if (error) {
-                toast.error(error.message || 'Failed to save profile')
-              } else {
+              if (isMockAuth) {
+                // Save to localStorage for mock auth
+                const mockProfile = {
+                  user_id: user.id,
+                  display_name: displayName.trim(),
+                  avatar_id: avatarId,
+                  character_type: characterType,
+                }
+                saveMockProfileToStorage(mockProfile)
                 await refreshProfile()
                 toast.success('Profile saved! Welcome to the 2D realm.')
+              } else {
+                // Save to Supabase
+                const { error } = await supabase
+                  .from('profiles')
+                  .upsert(
+                    {
+                      user_id: user.id,
+                      display_name: displayName.trim(),
+                      avatar_id: avatarId,
+                      character_type: characterType,
+                    },
+                    {
+                      onConflict: 'user_id',
+                    }
+                  )
+
+                if (error) {
+                  toast.error(error.message || 'Failed to save profile')
+                } else {
+                  await refreshProfile()
+                  toast.success('Profile saved! Welcome to the 2D realm.')
+                }
               }
+
+              setIsSubmitting(false)
             }}
             className="space-y-6"
           >
@@ -127,7 +153,7 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
             />
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text mb-2">
                 Character
               </label>
               <div className="grid grid-cols-2 gap-3 mb-4">
@@ -141,14 +167,14 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
                       onClick={() => setCharacterType(type)}
                       className={`relative rounded-lg border-2 p-3 transition-all ${
                         characterType === type
-                          ? 'border-blue-600 ring-2 ring-blue-600 ring-offset-2'
-                          : 'border-gray-200 hover:border-gray-400'
+                          ? 'border-accent ring-2 ring-accent ring-offset-2'
+                          : 'border-border hover:border-border-strong'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 shrink-0 rounded bg-gray-100 flex items-center justify-center overflow-hidden">
+                        <div className="w-12 h-12 shrink-0 rounded bg-surface-elevated flex items-center justify-center overflow-hidden border border-border">
                           {type === 'default' ? (
-                            <div 
+                            <div
                               className="w-full h-full rounded"
                               style={{ backgroundColor: AVATAR_COLORS.find(c => c.id === avatarId)?.hex || '#e24a4a' }}
                             />
@@ -158,18 +184,17 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
                               alt={character.name}
                               className="w-full h-full object-contain"
                               onError={(e) => {
-                                // Fallback to a placeholder if image fails to load
                                 const target = e.target as HTMLImageElement
                                 target.style.display = 'none'
-                                target.parentElement!.innerHTML = '<div class="w-full h-full bg-gray-300 rounded"></div>'
+                                target.parentElement!.innerHTML = '<div class="w-full h-full bg-surface-elevated rounded"></div>'
                               }}
                             />
                           )}
                         </div>
                         <div className="text-left flex-1">
-                          <div className="font-medium text-sm text-gray-900">{character.name}</div>
+                          <div className="font-medium text-sm text-text">{character.name}</div>
                           {type === 'default' && (
-                            <div className="text-xs text-gray-500">Customizable colors</div>
+                            <div className="text-xs text-text-muted">Customizable colors</div>
                           )}
                         </div>
                       </div>
@@ -181,7 +206,7 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
 
             {CHARACTERS[characterType].hasColors && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-text mb-2">
                   Avatar Color
                 </label>
                 <div className="grid grid-cols-6 gap-2">
@@ -192,15 +217,15 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
                       onClick={() => setAvatarId(color.id)}
                       className={`aspect-square rounded-lg border-2 transition-all ${
                         avatarId === color.id
-                          ? 'border-blue-600 ring-2 ring-blue-600 ring-offset-2 scale-105'
-                          : 'border-gray-200 hover:border-gray-400 hover:scale-105'
+                          ? 'border-accent ring-2 ring-accent ring-offset-2 scale-105'
+                          : 'border-border hover:border-border-strong hover:scale-105'
                       }`}
                       style={{ backgroundColor: color.hex }}
                       title={color.name}
                     />
                   ))}
                 </div>
-                <p className="mt-2 text-xs text-gray-500">
+                <p className="mt-2 text-xs text-text-muted">
                   Choose a color for your avatar character
                 </p>
               </div>
@@ -209,7 +234,7 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
             <button
               type="submit"
               disabled={isSubmitting || !displayName.trim()}
-              className="w-full"
+              className="w-full rounded-lg bg-accent px-4 py-2 text-text-inverse hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
             >
               {isSubmitting ? 'Creating your character...' : 'Enter the 2D Realm'}
             </button>

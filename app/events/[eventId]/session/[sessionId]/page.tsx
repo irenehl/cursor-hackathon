@@ -11,8 +11,10 @@ import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { InstanceChannel } from '@/game/net/instanceChannel'
 import { PvpManager } from '@/game/entities/pvpManager'
-import { createPvpDuel, acceptPvpAndResolve, raiseHand, leaveSession, getSessionHost } from '@/lib/supabase/rpc'
+import { ChatProximityManager, ChatMessage } from '@/game/entities/chatProximityManager'
+import { createPvpDuel, acceptPvpAndResolve, raiseHand, joinOrCreateProximityChat, leaveProximityChat, sendProximityMessage, getProximityChatHistory, leaveSession, getSessionHost } from '@/lib/supabase/rpc'
 import { PvpUi } from '@/components/game/pvp-ui'
+import { ChatUi } from '@/components/game/chat-ui'
 import { HostOverlay } from '@/components/game/host-overlay'
 import { EventInfoCard } from '@/components/game/event-info-card'
 import { EventStatusBadge } from '@/components/game/event-status-badge'
@@ -31,6 +33,7 @@ export default function SessionPage() {
   const localPlayerRef = useRef<LocalPlayer | null>(null)
   const instanceChannelRef = useRef<InstanceChannel | null>(null)
   const pvpManagerRef = useRef<PvpManager | null>(null)
+  const chatManagerRef = useRef<ChatProximityManager | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [nearbyPlayer, setNearbyPlayer] = useState<{ userId: string; displayName: string } | null>(null)
@@ -41,14 +44,6 @@ export default function SessionPage() {
   const [currentUserId, setCurrentUserId] = useState<string>('')
   const [presenceState, setPresenceState] = useState<Map<string, any>>(new Map())
   const [showFightOverlay, setShowFightOverlay] = useState(false)
-  const [pvpWinner, setPvpWinner] = useState<{ winnerName: string } | null>(null)
-  const [eventInfo, setEventInfo] = useState<{
-    title: string
-    capacity: number
-    starts_at: string
-    duration_minutes: number
-  } | null>(null)
-  const [sessionHostUserId, setSessionHostUserId] = useState<string | null>(null)
   const positionBroadcastIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const presenceUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const proximityCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -337,6 +332,30 @@ export default function SessionPage() {
         const pvpManager = new PvpManager()
         pvpManagerRef.current = pvpManager
 
+        // Create Chat Proximity Manager
+        const chatManager = new ChatProximityManager()
+        chatManagerRef.current = chatManager
+
+        // Handle chat joined (called when chat is set in manager)
+        chatManager.onChatJoined((chatId) => {
+          // Chat is already set up, just log for debugging
+          console.log('Chat joined:', chatId)
+        })
+
+        // Handle chat left
+        chatManager.onChatLeft(() => {
+          if (!mounted) return
+          setCurrentChatId(null)
+          setChatMessages([])
+          setChatMembers([])
+        })
+
+        // Handle new message received
+        chatManager.onMessageReceived((message) => {
+          if (!mounted) return
+          setChatMessages((prev) => [...prev, message])
+        })
+
         // Handle PvP challenge received
         pvpManager.onChallengeReceived((challenge) => {
           // Get challenger display name from presence
@@ -493,6 +512,17 @@ export default function SessionPage() {
                 }, 3000)
               }
             }
+          } else if (event === 'chat_message') {
+            // Handle chat message broadcast
+            if (chatManagerRef.current && payload.chatId === currentChatId) {
+              const message: ChatMessage = {
+                id: payload.messageId,
+                userId: payload.userId,
+                content: payload.content,
+                createdAt: payload.createdAt,
+              }
+              chatManagerRef.current.addMessage(message)
+            }
           }
         })
 
@@ -538,14 +568,14 @@ export default function SessionPage() {
             y: rp.currentY,
           }))
 
-          // Find nearby players
+          // Find nearby players for PvP
           const nearby = pvpManagerRef.current.findNearbyPlayers(
             localState.x,
             localState.y,
             playerPositions
           )
 
-          // Set nearest player (if any)
+          // Set nearest player (if any) for PvP
           if (nearby.length > 0 && !challengeReceived) {
             const nearest = nearby[0]
             setNearbyPlayer({
@@ -554,6 +584,123 @@ export default function SessionPage() {
             })
           } else {
             setNearbyPlayer(null)
+          }
+
+          // Chat proximity logic
+          if (chatManagerRef.current) {
+            const nearbyForChatList = chatManagerRef.current.findNearbyPlayers(
+              localState.x,
+              localState.y,
+              playerPositions
+            )
+            setNearbyForChat(nearbyForChatList.length)
+
+            const currentChat = chatManagerRef.current.getCurrentChat()
+
+            // Check if should join/create chat
+            if (chatManagerRef.current.shouldJoinChat(localState.x, localState.y, nearbyForChatList)) {
+              // Need at least 2 players (including self)
+              if (nearbyForChatList.length >= 1) {
+                const nearbyUserIds = nearbyForChatList.map((p) => p.userId)
+                try {
+                  const result = await joinOrCreateProximityChat(
+                    sessionId,
+                    localState.x,
+                    localState.y,
+                    nearbyUserIds
+                  )
+                  // Check if we're already in this chat
+                  const existingChat = chatManagerRef.current.getCurrentChat()
+                  if (!existingChat || existingChat.chatId !== result.chat_id) {
+                    // Load chat data and set it up
+                    let formattedMessages: ChatMessage[] = []
+                    let memberIds: string[] = [...nearbyUserIds, user.id]
+                    
+                    try {
+                      const [historyResult, membersResult] = await Promise.all([
+                        getProximityChatHistory(result.chat_id, 50),
+                        supabase
+                          .from('proximity_chat_members')
+                          .select('user_id')
+                          .eq('chat_id', result.chat_id)
+                      ])
+
+                      formattedMessages = historyResult
+                        .reverse()
+                        .map((msg) => ({
+                          id: msg.id,
+                          userId: msg.user_id,
+                          content: msg.content,
+                          createdAt: msg.created_at,
+                        }))
+
+                      if (membersResult.data) {
+                        memberIds = membersResult.data.map((m) => m.user_id)
+                      }
+                    } catch (historyError) {
+                      console.warn('Failed to load chat history, continuing with empty:', historyError)
+                    }
+                    
+                    // Update state regardless of history loading success
+                    if (mounted) {
+                      setCurrentChatId(result.chat_id)
+                      setChatMessages(formattedMessages)
+                      setChatMembers(memberIds)
+                    }
+                    
+                    // Update chat manager
+                    if (chatManagerRef.current) {
+                      chatManagerRef.current.setCurrentChat({
+                        chatId: result.chat_id,
+                        members: memberIds,
+                        messages: formattedMessages,
+                      })
+                    }
+                  }
+                } catch (error) {
+                  console.error('Failed to join/create chat:', error)
+                }
+              }
+            }
+
+            // Check if should leave chat
+            if (currentChat) {
+              // Get positions of chat members
+              const chatMemberPositions = playerPositions.filter((p) =>
+                currentChat.members.includes(p.userId)
+              )
+
+              if (chatManagerRef.current.shouldLeaveChat(localState.x, localState.y, chatMemberPositions)) {
+                // Start debounced leave
+                chatManagerRef.current.startLeaveDebounce(async () => {
+                  if (!mounted || !chatManagerRef.current) return
+                  
+                  // Re-check if still should leave
+                  const updatedChat = chatManagerRef.current.getCurrentChat()
+                  if (!updatedChat) return
+
+                  const updatedMemberPositions = Array.from(remotePlayers.values())
+                    .filter((rp) => updatedChat.members.includes(rp.userId))
+                    .map((rp) => ({
+                      userId: rp.userId,
+                      x: rp.currentX,
+                      y: rp.currentY,
+                    }))
+
+                  if (chatManagerRef.current.shouldLeaveChat(localState.x, localState.y, updatedMemberPositions)) {
+                    try {
+                      await leaveProximityChat(updatedChat.chatId)
+                      chatManagerRef.current.setCurrentChat(null)
+                    } catch (error) {
+                      console.error('Failed to leave chat:', error)
+                    }
+                  }
+                })
+              } else {
+                // Clear debounce if back in range
+                chatManagerRef.current.clearLeaveDebounce()
+              }
+            }
           }
 
           // Update remote players in player manager
@@ -615,6 +762,25 @@ export default function SessionPage() {
             displayName: p.displayName,
           }))
           setPlayersOnline(players)
+
+          // Update chat members if in a chat
+          if (currentChatId && chatManagerRef.current) {
+            const chatManager = chatManagerRef.current
+            supabase
+              .from('proximity_chat_members')
+              .select('user_id')
+              .eq('chat_id', currentChatId)
+              .then(({ data, error }) => {
+                if (!error && data && mounted) {
+                  const memberIds = data.map((m) => m.user_id)
+                  setChatMembers(memberIds)
+                  const currentChat = chatManager.getCurrentChat()
+                  if (currentChat) {
+                    chatManager.updateMembers(memberIds)
+                  }
+                }
+              })
+          }
         }, 1000) // Update every second
 
         // Poll session host (host = event host if in session, else first player by join time)
@@ -911,6 +1077,34 @@ export default function SessionPage() {
         onAcceptChallenge={handleAcceptChallenge}
         onRejectChallenge={handleRejectChallenge}
         pvpWinner={pvpWinner}
+      />
+
+      {/* Chat UI */}
+      <ChatUi
+        chatId={currentChatId}
+        messages={chatMessages}
+        members={chatMembers}
+        nearbyCount={nearbyForChat}
+        onSendMessage={async (content) => {
+          if (!currentChatId) return
+          try {
+            await sendProximityMessage(currentChatId, content)
+            // Message will be added via broadcast callback
+          } catch (error: any) {
+            toast.error('Failed to send message: ' + (error.message || 'Unknown error'))
+            console.error('Send message error:', error)
+          }
+        }}
+        onClose={() => {
+          if (currentChatId && chatManagerRef.current) {
+            leaveProximityChat(currentChatId).catch(console.error)
+            chatManagerRef.current.setCurrentChat(null)
+          }
+        }}
+        displayNames={new Map(
+          Array.from(presenceState.values()).map((p) => [p.userId, p.displayName])
+        )}
+        currentUserId={currentUserId}
       />
 
       {/* Fight brawl overlay when PvP duel resolves */}

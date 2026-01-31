@@ -13,15 +13,14 @@ import { TicketCode } from '@/components/ui/ticket-code'
 
 export default function Home() {
   const router = useRouter()
-  const { user, profile, signOut } = useAuth()
+  const { user, profile, signOut, isMockAuth } = useAuth()
   const [isCreatingEvent, setIsCreatingEvent] = useState(false)
   const [eventTitle, setEventTitle] = useState('')
   const [eventDuration, setEventDuration] = useState('60')
   const [eventCapacity, setEventCapacity] = useState('50')
   const [ticketCount, setTicketCount] = useState('10')
   const [eventVisibility, setEventVisibility] = useState<'public' | 'private'>('public')
-  
-  // Check if user is anonymous (Supabase sets is_anonymous on the user object)
+
   const isAnonymous = user?.is_anonymous ?? false
   const [createdEvent, setCreatedEvent] = useState<{
     eventId: string
@@ -41,13 +40,11 @@ export default function Home() {
 
     setIsCreatingEvent(true)
     try {
-      // Prevent anonymous users from creating events
       if (isAnonymous) {
-        toast.error('Please sign in with email to create events')
+        toast.error('Please sign in to create events')
         return
       }
 
-      // Create event
       const { data: event, error: eventError } = await supabase
         .from('events')
         .insert({
@@ -62,9 +59,23 @@ export default function Home() {
         .select()
         .single()
 
-      if (eventError) throw eventError
+      if (eventError) {
+        // If using mock auth and we get a foreign key constraint error, provide helpful message
+        if (isMockAuth && (
+          eventError.code === '23503' || // Foreign key violation
+          eventError.message?.includes('foreign key') ||
+          eventError.message?.includes('violates foreign key constraint') ||
+          eventError.message?.includes('auth.users')
+        )) {
+          throw new Error(
+            'Cannot create event: The database foreign key constraint prevents mock user IDs. ' +
+            'Please run migration 0006_relax_host_user_fk.sql to temporarily remove the constraint. ' +
+            'Run: supabase migration up (or apply the migration through your Supabase dashboard)'
+          )
+        }
+        throw eventError
+      }
 
-      // Generate ticket codes (optional for public events - 0 tickets = open to all)
       const ticketCodes: string[] = []
       const tickets = []
       const parsedTicketCount = parseInt(ticketCount, 10) || 10
@@ -92,7 +103,20 @@ export default function Home() {
       setEventTitle('')
     } catch (error: any) {
       console.error('Error creating event:', error)
-      toast.error(error.message || 'Failed to create event')
+      // Log more details about the error
+      if (error?.message) {
+        console.error('Error message:', error.message)
+      }
+      if (error?.code) {
+        console.error('Error code:', error.code)
+      }
+      if (error?.details) {
+        console.error('Error details:', error.details)
+      }
+      if (error?.hint) {
+        console.error('Error hint:', error.hint)
+      }
+      toast.error(error?.message || error?.details || 'Failed to create event')
     } finally {
       setIsCreatingEvent(false)
     }
@@ -109,13 +133,12 @@ export default function Home() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col p-4 sm:p-6 md:p-8 bg-background">
-      <div className="max-w-6xl w-full mx-auto">
-        {/* Playful Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-border">
+    <main className="min-h-screen bg-background text-text antialiased selection:bg-accent selection:text-text-inverse transition-colors duration-200">
+      <div className="max-w-6xl w-full mx-auto px-6 py-8">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-border">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-text">
-              2D Events MVP
+            <h1 className="font-pixel text-2xl md:text-3xl tracking-tight text-text mb-2">
+              Pixel Meet
             </h1>
             {profile && (
               <p className="text-text-muted text-sm sm:text-base">
@@ -136,17 +159,15 @@ export default function Home() {
           >
             Sign Out
           </Button>
-        </div>
+        </header>
 
-        {/* Navigation CTAs */}
         <div className="grid gap-6 md:grid-cols-2 mb-8">
-          {/* Browse Events - Portal Style */}
           <Link href="/events" className="block">
             <Card interactive elevated className="h-full">
               <div className="flex items-start gap-4">
                 <div className="text-3xl">🚪</div>
                 <div className="flex-1">
-                  <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-text">
+                  <h2 className="font-pixel text-xl md:text-2xl tracking-tight text-text mb-2">
                     Browse Events
                   </h2>
                   <p className="text-text-muted text-sm sm:text-base">
@@ -158,19 +179,18 @@ export default function Home() {
             </Card>
           </Link>
 
-          {/* Create Event Form */}
           <Card elevated>
             <div className="mb-4">
-              <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-text">
+              <h2 className="font-pixel text-xl md:text-2xl tracking-tight text-text mb-2">
                 Create Event + Tickets
               </h2>
               <p className="text-text-muted text-sm">
                 Cook up an event and generate golden tickets for your participants
               </p>
               {isAnonymous && (
-                <div className="mt-3 p-3 bg-accent-muted border border-accent rounded-lg">
+                <div className="mt-3 p-3 bg-accent-muted/20 border border-accent rounded-lg">
                   <p className="text-sm text-text">
-                    <strong>Sign in with email</strong> to create and host events.
+                    <strong>Sign in</strong> to create and host events.
                   </p>
                 </div>
               )}
@@ -290,7 +310,7 @@ export default function Home() {
                     </label>
                   </div>
                   <p className="text-xs text-text-muted mt-1">
-                    {eventVisibility === 'public' 
+                    {eventVisibility === 'public'
                       ? 'Public events allow joining without tickets. Tickets will be publicly visible.'
                       : 'Private events require a ticket code to join. Tickets are private.'}
                   </p>
