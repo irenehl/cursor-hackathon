@@ -1,26 +1,66 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   Design system — palette (light-first)
+   #04151f  #183a37  #efd6ac  #c44900  #432534
+   ========================================================================== */
+
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  /* Raw palette */
+  --palette-midnight: #04151f;
+  --palette-teal: #183a37;
+  --palette-cream: #efd6ac;
+  --palette-ember: #c44900;
+  --palette-plum: #432534;
+
+  /* Light-priority semantic tokens */
+  --color-background: #faf6ef;        /* lightest: cream + white */
+  --color-surface: #f5ebdc;          /* soft cream */
+  --color-surface-elevated: #efd6ac; /* palette cream */
+  --color-border: #e5d4b8;           /* cream muted */
+  --color-border-strong: #183a37;     /* teal for emphasis */
+
+  --color-text: #04151f;
+  --color-text-muted: #183a37;
+  --color-text-inverse: #efd6ac;
+
+  --color-accent: #c44900;
+  --color-accent-hover: #a33d00;
+  --color-accent-muted: #e8a880;     /* ember tint for subtle use */
+  --color-accent-secondary: #432534;
+  --color-accent-secondary-muted: #6b3d52; /* plum tint */
+
+  /* Legacy RGB (kept for any existing usage) */
+  --foreground-rgb: 4, 21, 31;
+  --background-start-rgb: 250, 246, 239;
+  --background-end-rgb: 245, 235, 220;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+@theme {
+  /* Tailwind v4: map design tokens to utilities */
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-surface-elevated: var(--color-surface-elevated);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-text: var(--color-text);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-inverse: var(--color-text-inverse);
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-accent-muted: var(--color-accent-muted);
+  --color-accent-secondary: var(--color-accent-secondary);
+  --color-accent-secondary-muted: var(--color-accent-secondary-muted);
+  /* Palette (for one-off use) */
+  --color-midnight: var(--palette-midnight);
+  --color-teal: var(--palette-teal);
+  --color-cream: var(--palette-cream);
+  --color-ember: var(--palette-ember);
+  --color-plum: var(--palette-plum);
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  color: var(--color-text);
+  background: var(--color-background);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
