@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Gamepad2, ArrowLeft } from 'lucide-react'
 
 interface Event {
   id: string
@@ -105,20 +106,13 @@ export default function EventsPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen flex-col p-4 sm:p-6 md:p-8 bg-background">
+      <main className="min-h-screen bg-background text-text antialiased selection:bg-accent selection:text-text-inverse transition-colors duration-200 px-6 py-8">
         <div className="max-w-6xl w-full mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-border">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-text">
-                Events
-              </h1>
-              <p className="text-text-muted text-sm">
-                Summoning events from the digital realm...
-              </p>
-            </div>
-            <Button variant="ghost" asChild>
-              <Link href="/home">← Home</Link>
-            </Button>
+          <div className="flex items-center gap-3 mb-8">
+            <Gamepad2 className="w-8 h-8 text-accent shrink-0" />
+            <h1 className="font-pixel text-2xl md:text-3xl tracking-tight text-text">
+              Events
+            </h1>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -136,28 +130,29 @@ export default function EventsPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col p-4 sm:p-6 md:p-8 bg-background">
-      <div className="max-w-6xl w-full mx-auto">
-        {/* Decorative Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-border">
+    <main className="min-h-screen bg-background text-text antialiased selection:bg-accent selection:text-text-inverse transition-colors duration-200">
+      <div className="max-w-6xl w-full mx-auto px-6 py-8">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10 pb-6 border-b border-border">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-text">
+            <h1 className="font-pixel text-2xl md:text-3xl tracking-tight text-text mb-2">
               Events
             </h1>
             <p className="text-text-muted text-sm">
-              {events.length === 0 
+              {events.length === 0
                 ? 'The void awaits your creation'
-                : `${events.length} event${events.length !== 1 ? 's' : ''} waiting for you`
-              }
+                : `${events.length} event${events.length !== 1 ? 's' : ''} waiting for you`}
             </p>
           </div>
           <Button variant="ghost" asChild>
-            <Link href="/">← Home</Link>
+            <Link href="/home" className="inline-flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Home
+            </Link>
           </Button>
-        </div>
-        
+        </header>
+
         {error ? (
-          <Card className="border-accent">
+          <Card className="border-accent bg-accent-muted/10">
             <div className="text-center py-8">
               <p className="text-accent font-semibold mb-2">
                 Oops! The internet hiccupped.
@@ -175,12 +170,14 @@ export default function EventsPage() {
             {/* My Events Section */}
             {user && !user.is_anonymous && myEvents.length > 0 && (
               <div className="mb-8">
-                <h2 className="text-2xl font-bold mb-4 text-text">My Events</h2>
+                <h2 className="font-pixel text-xl md:text-2xl tracking-tight text-text mb-4">
+                  My Events
+                </h2>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
                   {myEvents.map((event) => (
                     <Card key={event.id} className="h-full border-2 border-accent">
                       <div className="flex items-start justify-between mb-3">
-                        <h3 className="text-xl font-semibold text-text flex-1 pr-2">
+                        <h3 className="font-pixel text-lg tracking-tight text-text flex-1 pr-2">
                           {event.title}
                         </h3>
                         <Badge variant={event.status}>
@@ -241,7 +238,7 @@ export default function EventsPage() {
 
             {/* All Events Section */}
             <div>
-              <h2 className="text-2xl font-bold mb-4 text-text">
+              <h2 className="font-pixel text-xl md:text-2xl tracking-tight text-text mb-4">
                 {user && !user.is_anonymous && myEvents.length > 0 ? 'All Events' : 'Events'}
               </h2>
               {events.length === 0 ? (
@@ -263,7 +260,7 @@ export default function EventsPage() {
                     <Link key={event.id} href={`/events/${event.id}/ticket`}>
                       <Card interactive className="h-full">
                         <div className="flex items-start justify-between mb-3">
-                          <h2 className="text-xl font-semibold text-text flex-1 pr-2">
+                          <h2 className="font-pixel text-lg tracking-tight text-text flex-1 pr-2">
                             {event.title}
                           </h2>
                           <Badge variant={event.status}>
