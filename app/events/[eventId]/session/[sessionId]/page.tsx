@@ -36,6 +36,7 @@ export default function SessionPage() {
   const [isHost, setIsHost] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string>('')
   const [presenceState, setPresenceState] = useState<Map<string, any>>(new Map())
+  const [showFightOverlay, setShowFightOverlay] = useState(false)
   const positionBroadcastIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const presenceUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const proximityCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -379,6 +380,11 @@ export default function SessionPage() {
               loserId: payload.loserId,
             }
             pvpManager.handleDuelResolved(duel)
+            // Show fight brawl overlay
+            if (mounted) setShowFightOverlay(true)
+            setTimeout(() => {
+              if (mounted) setShowFightOverlay(false)
+            }, 3200)
             
             // Also update remote player states
             if (playerManagerRef.current) {
@@ -762,6 +768,17 @@ export default function SessionPage() {
         onAcceptChallenge={handleAcceptChallenge}
         onRejectChallenge={handleRejectChallenge}
       />
+
+      {/* Fight brawl overlay when PvP duel resolves */}
+      {showFightOverlay && (
+        <div className="fight-overlay" aria-hidden>
+          <img
+            src="/assets/overlays/fight-brawl.png"
+            alt=""
+            className="fight-overlay__img"
+          />
+        </div>
+      )}
     </main>
   )
 }

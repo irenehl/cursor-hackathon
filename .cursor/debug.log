@@ -454,3 +454,11 @@
 {"hypothesisId":"H1","location":"auth-context:fetchProfile:ok","message":"fetchProfile ok","data":{},"timestamp":1769883245609,"sessionId":"debug-session"}
 {"hypothesisId":"H1","location":"auth-context:fetchProfile:entry","message":"fetchProfile start","data":{"userId":"3a94f1ca-f694-47d6-8898-09c82557b6aa"},"timestamp":1769883253188,"sessionId":"debug-session"}
 {"hypothesisId":"H1","location":"auth-context:fetchProfile:ok","message":"fetchProfile ok","data":{},"timestamp":1769883253367,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:entry","message":"fetchProfile start","data":{"userId":"3a94f1ca-f694-47d6-8898-09c82557b6aa"},"timestamp":1769883274910,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:ok","message":"fetchProfile ok","data":{},"timestamp":1769883275104,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:entry","message":"fetchProfile start","data":{"userId":"3a94f1ca-f694-47d6-8898-09c82557b6aa"},"timestamp":1769883286700,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:ok","message":"fetchProfile ok","data":{},"timestamp":1769883286926,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:entry","message":"fetchProfile start","data":{"userId":"3a94f1ca-f694-47d6-8898-09c82557b6aa"},"timestamp":1769883306694,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:ok","message":"fetchProfile ok","data":{},"timestamp":1769883306939,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:entry","message":"fetchProfile start","data":{"userId":"3a94f1ca-f694-47d6-8898-09c82557b6aa"},"timestamp":1769883322397,"sessionId":"debug-session"}
+{"hypothesisId":"H1","location":"auth-context:fetchProfile:ok","message":"fetchProfile ok","data":{},"timestamp":1769883322572,"sessionId":"debug-session"}
