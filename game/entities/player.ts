@@ -47,27 +47,9 @@ export class Player {
       // #region agent log
       fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'player.ts:loadAvatar:catch', message: 'loadAvatar failed', data: { avatarPath, errMessage: error?.message }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
       // #endregion
-      console.warn(`Failed to load avatar from ${avatarPath}, using fallback`, error)
-      // Create a simple colored rectangle as fallback
-      const fallback = new Graphics()
-      fallback.beginFill(0x4a90e2) // Blue color
-      fallback.drawRect(0, 0, 32, 32)
-      fallback.endFill()
-      // Get renderer from parent application
-      const renderer = (this.container.parent as any)?.app?.renderer
-      if (renderer) {
-        this.avatarTexture = renderer.generateTexture(fallback)
-      } else {
-        // Last resort: create a simple texture using canvas
-        const canvas = document.createElement('canvas')
-        canvas.width = 32
-        canvas.height = 32
-        const ctx = canvas.getContext('2d')!
-        ctx.fillStyle = '#4a90e2'
-        ctx.fillRect(0, 0, 32, 32)
-        this.avatarTexture = Texture.from(canvas)
-      }
-      fallback.destroy()
+      console.warn(`Failed to load avatar from ${avatarPath}, using pixel-art placeholder`, error)
+      // Create a pixel-art style character placeholder
+      this.avatarTexture = this.createPixelArtPlaceholder()
     }
     
     if (!this.avatarTexture) {
@@ -261,6 +243,63 @@ export class Player {
         this.sprite.tint = 0xffffff
       }
     }
+  }
+
+  /**
+   * Create a pixel-art style placeholder sprite
+   */
+  private createPixelArtPlaceholder(): Texture {
+    // Color palette based on avatarId for variety
+    const colors = [
+      { body: 0x4a90e2, head: 0xffdbac, outline: 0x000000 }, // Blue body
+      { body: 0xe24a4a, head: 0xffdbac, outline: 0x000000 }, // Red body
+      { body: 0x4ae24a, head: 0xffdbac, outline: 0x000000 }, // Green body
+      { body: 0xe2e24a, head: 0xffdbac, outline: 0x000000 }, // Yellow body
+      { body: 0xe24ae2, head: 0xffdbac, outline: 0x000000 }, // Purple body
+      { body: 0x4ae2e2, head: 0xffdbac, outline: 0x000000 }, // Cyan body
+    ]
+    
+    const colorSet = colors[this.config.avatarId % colors.length]
+    
+    // Use canvas for pixel-perfect rendering
+    const canvas = document.createElement('canvas')
+    canvas.width = 32
+    canvas.height = 32
+    const ctx = canvas.getContext('2d')!
+    
+    // Enable pixel-perfect rendering
+    ctx.imageSmoothingEnabled = false
+    
+    // Draw outline (black)
+    ctx.fillStyle = `#${colorSet.outline.toString(16).padStart(6, '0')}`
+    
+    // Head (circle, centered top)
+    ctx.beginPath()
+    ctx.arc(16, 10, 7, 0, Math.PI * 2)
+    ctx.fill()
+    
+    // Body (rounded rectangle)
+    ctx.fillRect(10, 16, 12, 14)
+    
+    // Fill head
+    ctx.fillStyle = `#${colorSet.head.toString(16).padStart(6, '0')}`
+    ctx.beginPath()
+    ctx.arc(16, 10, 6, 0, Math.PI * 2)
+    ctx.fill()
+    
+    // Fill body
+    ctx.fillStyle = `#${colorSet.body.toString(16).padStart(6, '0')}`
+    ctx.fillRect(11, 17, 10, 12)
+    
+    // Draw eyes (2x2 pixels each)
+    ctx.fillStyle = `#${colorSet.outline.toString(16).padStart(6, '0')}`
+    ctx.fillRect(13, 8, 2, 2) // Left eye
+    ctx.fillRect(17, 8, 2, 2) // Right eye
+    
+    // Draw simple mouth (2 pixels wide)
+    ctx.fillRect(15, 11, 2, 1)
+    
+    return Texture.from(canvas)
   }
 
   destroy(): void {
