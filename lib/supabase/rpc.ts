@@ -7,11 +7,21 @@ import { supabase } from './client'
 
 export async function joinEvent(eventId: string, ticketCode: string) {
   const { data, error } = await supabase.rpc('join_event', {
-    event_id: eventId,
-    ticket_code: ticketCode,
+    p_event_id: eventId,
+    p_ticket_code: ticketCode,
   })
   if (error) throw error
-  return data as { session_id: string }
+  // RPC returns UUID directly as string
+  return { session_id: data as string }
+}
+
+export async function joinPublicEvent(eventId: string) {
+  const { data, error } = await supabase.rpc('join_public_event', {
+    p_event_id: eventId,
+  })
+  if (error) throw error
+  // RPC returns UUID directly as string
+  return { session_id: data as string }
 }
 
 export async function raiseHand(eventId: string) {

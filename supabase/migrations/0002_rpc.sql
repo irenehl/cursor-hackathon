@@ -155,6 +155,64 @@ END;
 $$;
 
 -- ============================================================================
+-- RPC: join_public_event
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION join_public_event(
+  p_event_id UUID
+)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id UUID;
+  v_event events%ROWTYPE;
+  v_active_ban penalties%ROWTYPE;
+  v_session_id UUID;
+BEGIN
+  -- Get current user
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  -- Get event and verify it's public
+  SELECT * INTO v_event
+  FROM events
+  WHERE id = p_event_id;
+  
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Event not found';
+  END IF;
+
+  -- Verify event is public
+  IF v_event.visibility != 'public' THEN
+    RAISE EXCEPTION 'Event is not public';
+  END IF;
+
+  -- Check for active ban
+  SELECT * INTO v_active_ban
+  FROM penalties
+  WHERE event_id = p_event_id
+    AND user_id = v_user_id
+    AND type = 'ban'
+    AND until > now()
+  LIMIT 1;
+
+  IF FOUND THEN
+    RAISE EXCEPTION 'User is banned from this event';
+  END IF;
+
+  -- Get or create session
+  v_session_id := get_or_create_session(p_event_id);
+
+  RETURN v_session_id;
+END;
+$$;
+
+-- ============================================================================
 -- RPC: raise_hand
 -- ============================================================================
 

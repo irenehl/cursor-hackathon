@@ -135,15 +135,37 @@ export default function SessionPage() {
           return
         }
 
-        // Check if user is host
+        // Check if user is host and verify access for private events
         const { data: eventData } = await supabase
           .from('events')
-          .select('host_user_id')
+          .select('host_user_id, visibility')
           .eq('id', eventId)
           .single()
 
-        if (eventData) {
-          setIsHost(eventData.host_user_id === user.id)
+        if (!eventData) {
+          setError('Event not found')
+          return
+        }
+
+        const isHost = eventData.host_user_id === user.id
+        setIsHost(isHost)
+
+        // For private events, verify user has access (host or ticket holder)
+        if (eventData.visibility === 'private' && !isHost) {
+          // Check if user has an assigned ticket for this event
+          const { data: ticketData } = await supabase
+            .from('tickets')
+            .select('code')
+            .eq('event_id', eventId)
+            .eq('assigned_user_id', user.id)
+            .limit(1)
+            .single()
+
+          if (!ticketData) {
+            // User doesn't have access, redirect to ticket page
+            router.push(`/events/${eventId}/ticket`)
+            return
+          }
         }
 
         // Initialize PixiJS
@@ -656,13 +678,13 @@ export default function SessionPage() {
 
   if (error) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-8">
+      <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-background">
         <div className="max-w-md w-full">
-          <h1 className="text-2xl font-bold mb-4 text-red-600">Error</h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+          <h1 className="text-2xl font-bold mb-4 text-accent">Error</h1>
+          <p className="text-text-muted mb-4">{error}</p>
           <button
             onClick={() => router.push('/events')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-accent text-text-inverse rounded-lg hover:bg-accent-hover transition-colors"
           >
             Back to Events
           </button>
@@ -674,8 +696,11 @@ export default function SessionPage() {
   return (
     <main className="relative w-full h-screen overflow-hidden">
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
-          <div className="text-white text-xl">Loading game...</div>
+        <div className="absolute inset-0 flex items-center justify-center bg-midnight/90 z-10 backdrop-blur-sm">
+          <div className="text-center">
+            <div className="text-text-inverse text-2xl mb-4 animate-pulse">🎮</div>
+            <div className="text-text-inverse text-xl font-mono">Loading your 2D destiny...</div>
+          </div>
         </div>
       )}
       <canvas
@@ -683,44 +708,68 @@ export default function SessionPage() {
         className="w-full h-full"
         style={{ display: 'block' }}
       />
-      <div className="absolute top-4 left-4 text-white bg-black bg-opacity-50 p-2 rounded text-sm space-y-1">
-        <div>Use WASD or Arrow Keys to move</div>
+      {/* Controls Hint - Retro Game Tutorial Style */}
+      <div 
+        className="absolute top-4 left-4 text-text-inverse bg-midnight/90 border-2 border-teal p-3 rounded-lg text-sm space-y-2 shadow-xl"
+        style={{
+          fontFamily: 'monospace',
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+        }}
+      >
+        <div className="text-cream font-semibold">CONTROLS:</div>
+        <div className="text-xs text-cream/90">WASD / Arrow Keys</div>
         <button
           onClick={() => router.push('/events')}
-          className="text-xs underline hover:no-underline"
+          className="text-xs text-cream hover:text-accent-muted underline hover:no-underline transition-colors mt-2 block"
         >
           ← Leave Session
         </button>
       </div>
 
-      {/* Players Online Overlay */}
-      <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white p-3 rounded-lg text-sm max-w-xs">
-        <div className="font-semibold mb-2">Players Online ({playersOnline.length})</div>
+      {/* Players Online Overlay - Retro Terminal Style */}
+      <div 
+        className="absolute top-4 right-4 bg-midnight/90 border-2 border-teal text-text-inverse p-3 rounded-lg text-sm max-w-xs shadow-xl"
+        style={{
+          fontFamily: 'monospace',
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+        }}
+      >
+        <div className="font-semibold mb-2 text-cream uppercase tracking-wider text-xs">
+          Players Online ({playersOnline.length})
+        </div>
         <div className="space-y-1 max-h-32 overflow-y-auto">
-          {playersOnline.map((player) => (
-            <div key={player.userId} className="text-xs">
-              {player.displayName}
-            </div>
-          ))}
+          {playersOnline.length === 0 ? (
+            <div className="text-xs text-cream/70 italic">Just you here</div>
+          ) : (
+            playersOnline.map((player) => (
+              <div key={player.userId} className="text-xs text-cream font-mono">
+                • {player.displayName}
+              </div>
+            ))
+          )}
         </div>
       </div>
 
-      {/* Raise Hand Button */}
+      {/* Raise Hand Button - Retro Game Button Style */}
       <div className="absolute bottom-4 left-4">
         <button
           onClick={handleRaiseHand}
           disabled={handState !== 'idle'}
-          className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+          className={`px-6 py-3 rounded-lg font-bold transition-all duration-150 border-2 ${
             handState === 'idle'
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              ? 'bg-accent hover:bg-accent-hover text-text-inverse border-accent/50 active:scale-95'
               : handState === 'queued'
-              ? 'bg-yellow-600 text-white cursor-not-allowed'
-              : 'bg-green-600 text-white cursor-not-allowed'
+              ? 'bg-accent-muted text-midnight cursor-not-allowed border-accent-muted/50'
+              : 'bg-teal text-text-inverse cursor-not-allowed border-teal/50'
           }`}
+          style={{
+            textShadow: handState === 'idle' ? '1px 1px 0px rgba(0, 0, 0, 0.3)' : 'none',
+            boxShadow: handState === 'idle' ? '0 4px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)' : 'none',
+          }}
         >
           {handState === 'idle' && '✋ Raise Hand'}
-          {handState === 'queued' && '⏳ En cola...'}
-          {handState === 'granted' && '✅ Turno otorgado'}
+          {handState === 'queued' && '⏳ In Queue...'}
+          {handState === 'granted' && '✅ Turn Granted!'}
         </button>
       </div>
 

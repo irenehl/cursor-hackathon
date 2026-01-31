@@ -6,6 +6,10 @@ import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { useState } from 'react'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { TicketCode } from '@/components/ui/ticket-code'
 
 export default function Home() {
   const router = useRouter()
@@ -15,6 +19,10 @@ export default function Home() {
   const [eventDuration, setEventDuration] = useState(60)
   const [eventCapacity, setEventCapacity] = useState(50)
   const [ticketCount, setTicketCount] = useState(10)
+  const [eventVisibility, setEventVisibility] = useState<'public' | 'private'>('public')
+  
+  // Check if user is anonymous (Supabase sets is_anonymous on the user object)
+  const isAnonymous = user?.is_anonymous ?? false
   const [createdEvent, setCreatedEvent] = useState<{
     eventId: string
     ticketCodes: string[]
@@ -29,6 +37,12 @@ export default function Home() {
 
     setIsCreatingEvent(true)
     try {
+      // Prevent anonymous users from creating events
+      if (isAnonymous) {
+        toast.error('Please sign in with email to create events')
+        return
+      }
+
       // Create event
       const { data: event, error: eventError } = await supabase
         .from('events')
@@ -39,6 +53,7 @@ export default function Home() {
           capacity: eventCapacity,
           host_user_id: user.id,
           status: 'open',
+          visibility: eventVisibility,
         })
         .select()
         .single()
@@ -46,6 +61,7 @@ export default function Home() {
       if (eventError) throw eventError
 
       // Generate ticket codes
+      // For public events, tickets are public; for private events, tickets are private
       const ticketCodes: string[] = []
       const tickets = []
       for (let i = 0; i < ticketCount; i++) {
@@ -54,6 +70,7 @@ export default function Home() {
         tickets.push({
           code,
           event_id: event.id,
+          is_public: eventVisibility === 'public',
         })
       }
 
@@ -67,7 +84,7 @@ export default function Home() {
         eventId: event.id,
         ticketCodes,
       })
-      toast.success('Event created successfully!')
+      toast.success('Event created! Your tickets are ready to distribute.')
       setEventTitle('')
     } catch (error: any) {
       console.error('Error creating event:', error)
@@ -88,156 +105,205 @@ export default function Home() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col p-8">
+    <main className="flex min-h-screen flex-col p-4 sm:p-6 md:p-8 bg-background">
       <div className="max-w-6xl w-full mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        {/* Playful Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-border">
           <div>
-            <h1 className="text-4xl font-bold mb-2">2D Events MVP</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-text">
+              2D Events MVP
+            </h1>
             {profile && (
-              <p className="text-gray-600 dark:text-gray-400">
-                Welcome, <strong>{profile.display_name}</strong> (Avatar: {profile.avatar_id})
+              <p className="text-text-muted text-sm sm:text-base">
+                Welcome back, <strong className="text-text">{profile.display_name}</strong>
+                <span className="text-text-muted"> • Avatar #{profile.avatar_id}</span>
+              </p>
+            )}
+            {!profile && (
+              <p className="text-text-muted text-sm sm:text-base">
+                Ready to cook up some events?
               </p>
             )}
           </div>
-          <button
+          <Button
+            variant="ghost"
             onClick={handleSignOut}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="whitespace-nowrap"
           >
             Sign Out
-          </button>
+          </Button>
         </div>
 
         {/* Navigation CTAs */}
-        <div className="grid gap-4 md:grid-cols-2 mb-8">
-          <Link
-            href="/events"
-            className="block p-6 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-          >
-            <h2 className="text-2xl font-semibold mb-2">Browse Events</h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              View all available events and join with a ticket code
-            </p>
+        <div className="grid gap-6 md:grid-cols-2 mb-8">
+          {/* Browse Events - Portal Style */}
+          <Link href="/events" className="block">
+            <Card interactive elevated className="h-full">
+              <div className="flex items-start gap-4">
+                <div className="text-3xl">🚪</div>
+                <div className="flex-1">
+                  <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-text">
+                    Browse Events
+                  </h2>
+                  <p className="text-text-muted text-sm sm:text-base">
+                    Step through the portal and discover what's happening in the 2D realm
+                  </p>
+                </div>
+                <div className="text-xl text-text-muted">→</div>
+              </div>
+            </Card>
           </Link>
 
-          <div className="p-6 border rounded-lg">
-            <h2 className="text-2xl font-semibold mb-2">Create Event + Tickets</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Create a new event and generate ticket codes for participants
-            </p>
+          {/* Create Event Form */}
+          <Card elevated>
+            <div className="mb-4">
+              <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-text">
+                Create Event + Tickets
+              </h2>
+              <p className="text-text-muted text-sm">
+                Cook up an event and generate golden tickets for your participants
+              </p>
+              {isAnonymous && (
+                <div className="mt-3 p-3 bg-accent-muted border border-accent rounded-lg">
+                  <p className="text-sm text-text">
+                    <strong>Sign in with email</strong> to create and host events.
+                  </p>
+                </div>
+              )}
+            </div>
 
             {createdEvent ? (
-              <div className="space-y-4">
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <p className="font-semibold mb-2">Event created!</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    Event ID: <code className="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">{createdEvent.eventId}</code>
+              <div className="space-y-6">
+                <div className="p-4 bg-surface border-2 border-border-strong rounded-lg">
+                  <p className="font-semibold mb-3 text-text text-lg">
+                    ✨ Event created!
+                  </p>
+                  <p className="text-sm text-text-muted mb-3">
+                    Event ID: <code className="bg-background px-2 py-1 rounded border border-border text-text font-mono text-xs">
+                      {createdEvent.eventId}
+                    </code>
                   </p>
                   <div className="mt-4">
-                    <p className="text-sm font-semibold mb-2">Ticket Codes:</p>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                    <p className="text-sm font-semibold mb-3 text-text">
+                      Distribute these golden tickets:
+                    </p>
+                    <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
                       {createdEvent.ticketCodes.map((code) => (
-                        <div
-                          key={code}
-                          className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border"
-                        >
-                          <code className="text-sm">{code}</code>
-                          <button
-                            onClick={() => copyTicketCode(code)}
-                            className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-                          >
-                            Copy
-                          </button>
-                        </div>
+                        <TicketCode key={code} code={code} />
                       ))}
                     </div>
                   </div>
-                  <button
+                  <Button
                     onClick={() => {
                       setCreatedEvent(null)
                       router.push('/events')
                     }}
-                    className="mt-4 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="mt-4 w-full"
+                    variant="primary"
                   >
                     View Event
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
               <form onSubmit={handleCreateEvent} className="space-y-4">
-                <div>
-                  <label htmlFor="eventTitle" className="block text-sm font-medium mb-2">
-                    Event Title
-                  </label>
-                  <input
-                    id="eventTitle"
-                    type="text"
-                    value={eventTitle}
-                    onChange={(e) => setEventTitle(e.target.value)}
-                    placeholder="My Awesome Event"
-                    required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+                <Input
+                  id="eventTitle"
+                  label="Event Title"
+                  type="text"
+                  value={eventTitle}
+                  onChange={(e) => setEventTitle(e.target.value)}
+                  placeholder="My Awesome Event"
+                  required
+                />
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="duration" className="block text-sm font-medium mb-2">
-                      Duration (minutes)
-                    </label>
-                    <input
-                      id="duration"
-                      type="number"
-                      value={eventDuration}
-                      onChange={(e) => setEventDuration(parseInt(e.target.value) || 60)}
-                      min="1"
-                      required
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="capacity" className="block text-sm font-medium mb-2">
-                      Capacity
-                    </label>
-                    <input
-                      id="capacity"
-                      type="number"
-                      value={eventCapacity}
-                      onChange={(e) => setEventCapacity(parseInt(e.target.value) || 50)}
-                      min="1"
-                      required
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="ticketCount" className="block text-sm font-medium mb-2">
-                    Number of Tickets
-                  </label>
-                  <input
-                    id="ticketCount"
+                  <Input
+                    id="duration"
+                    label="Duration (minutes)"
                     type="number"
-                    value={ticketCount}
-                    onChange={(e) => setTicketCount(parseInt(e.target.value) || 10)}
+                    value={eventDuration}
+                    onChange={(e) => setEventDuration(parseInt(e.target.value) || 60)}
                     min="1"
-                    max="100"
                     required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+
+                  <Input
+                    id="capacity"
+                    label="Capacity"
+                    type="number"
+                    value={eventCapacity}
+                    onChange={(e) => setEventCapacity(parseInt(e.target.value) || 50)}
+                    min="1"
+                    required
                   />
                 </div>
 
-                <button
+                <div>
+                  <label htmlFor="visibility" className="block text-sm font-medium mb-2 text-text">
+                    Event Visibility
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="visibility"
+                        value="public"
+                        checked={eventVisibility === 'public'}
+                        onChange={(e) => setEventVisibility(e.target.value as 'public' | 'private')}
+                        className="w-4 h-4 text-accent focus:ring-accent"
+                      />
+                      <span className="text-text">
+                        Public
+                        <span className="text-text-muted text-xs ml-1">(anyone can join)</span>
+                      </span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="visibility"
+                        value="private"
+                        checked={eventVisibility === 'private'}
+                        onChange={(e) => setEventVisibility(e.target.value as 'public' | 'private')}
+                        className="w-4 h-4 text-accent focus:ring-accent"
+                      />
+                      <span className="text-text">
+                        Private
+                        <span className="text-text-muted text-xs ml-1">(ticket required)</span>
+                      </span>
+                    </label>
+                  </div>
+                  <p className="text-xs text-text-muted mt-1">
+                    {eventVisibility === 'public' 
+                      ? 'Public events allow joining without tickets. Tickets will be publicly visible.'
+                      : 'Private events require a ticket code to join. Tickets are private.'}
+                  </p>
+                </div>
+
+                <Input
+                  id="ticketCount"
+                  label="Number of Tickets"
+                  type="number"
+                  value={ticketCount}
+                  onChange={(e) => setTicketCount(parseInt(e.target.value) || 10)}
+                  min="1"
+                  max="100"
+                  required
+                  helperText="Max 100 tickets per event"
+                />
+
+                <Button
                   type="submit"
-                  disabled={isCreatingEvent}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  disabled={isCreatingEvent || isAnonymous}
+                  className="w-full"
+                  variant="primary"
+                  size="lg"
                 >
-                  {isCreatingEvent ? 'Creating...' : 'Create Event & Generate Tickets'}
-                </button>
+                  {isCreatingEvent ? 'Cooking up your event...' : 'Create Event & Generate Tickets'}
+                </Button>
               </form>
             )}
-          </div>
+          </Card>
         </div>
       </div>
     </main>

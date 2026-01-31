@@ -4,6 +4,12 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/auth/auth-context'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
 
 interface Event {
   id: string
@@ -14,11 +20,14 @@ interface Event {
   host_user_id: string
   status: 'draft' | 'open' | 'closed'
   created_at: string
+  visibility?: 'public' | 'private'
 }
 
 export default function EventsPage() {
   const router = useRouter()
+  const { user } = useAuth()
   const [events, setEvents] = useState<Event[]>([])
+  const [myEvents, setMyEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -36,6 +45,19 @@ export default function EventsPage() {
         } else {
           setEvents(data || [])
         }
+
+        // Fetch user's events if logged in
+        if (user && !user.is_anonymous) {
+          const { data: myEventsData, error: myEventsError } = await supabase
+            .from('events')
+            .select('*')
+            .eq('host_user_id', user.id)
+            .order('created_at', { ascending: false })
+
+          if (!myEventsError) {
+            setMyEvents(myEventsData || [])
+          }
+        }
       } catch (err: any) {
         console.error('Error fetching events:', err)
         setError(err.message || 'Failed to load events')
@@ -45,71 +67,184 @@ export default function EventsPage() {
     }
 
     fetchEvents()
-  }, [])
+  }, [user])
 
   if (loading) {
     return (
-      <main className="flex min-h-screen flex-col p-8">
+      <main className="flex min-h-screen flex-col p-4 sm:p-6 md:p-8 bg-background">
         <div className="max-w-6xl w-full mx-auto">
-          <h1 className="text-4xl font-bold mb-8">Events</h1>
-          <div className="text-gray-500">Loading events...</div>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-border">
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-text">
+                Events
+              </h1>
+              <p className="text-text-muted text-sm">
+                Summoning events from the digital realm...
+              </p>
+            </div>
+            <Button variant="ghost" asChild>
+              <Link href="/">← Home</Link>
+            </Button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Card key={i} className="space-y-3">
+                <Skeleton height="1.5rem" width="60%" />
+                <Skeleton height="1rem" width="100%" />
+                <Skeleton height="1rem" width="80%" />
+                <Skeleton height="1rem" width="40%" />
+              </Card>
+            ))}
+          </div>
         </div>
       </main>
     )
   }
 
   return (
-    <main className="flex min-h-screen flex-col p-8">
+    <main className="flex min-h-screen flex-col p-4 sm:p-6 md:p-8 bg-background">
       <div className="max-w-6xl w-full mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold">Events</h1>
-          <div className="flex gap-4">
-            <Link
-              href="/"
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            >
-              ← Home
-            </Link>
+        {/* Decorative Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-border">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-text">
+              Events
+            </h1>
+            <p className="text-text-muted text-sm">
+              {events.length === 0 
+                ? 'The void awaits your creation'
+                : `${events.length} event${events.length !== 1 ? 's' : ''} waiting for you`
+              }
+            </p>
           </div>
+          <Button variant="ghost" asChild>
+            <Link href="/">← Home</Link>
+          </Button>
         </div>
         
         {error ? (
-          <div className="text-red-500">
-            Error loading events: {error}
-          </div>
-        ) : events.length === 0 ? (
-          <div className="text-center py-12 border rounded-lg">
-            <p className="text-gray-500 mb-4">No events found.</p>
-            <p className="text-sm text-gray-400 mb-6">
-              Create a demo event to get started!
-            </p>
-            <Link
-              href="/"
-              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Create Event + Tickets
-            </Link>
-          </div>
+          <Card className="border-accent">
+            <div className="text-center py-8">
+              <p className="text-accent font-semibold mb-2">
+                Oops! The internet hiccupped.
+              </p>
+              <p className="text-text-muted text-sm mb-4">
+                {error}
+              </p>
+              <Button variant="secondary" onClick={() => window.location.reload()}>
+                Try Again
+              </Button>
+            </div>
+          </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {events.map((event) => (
-              <Link
-                key={event.id}
-                href={`/events/${event.id}/ticket`}
-                className="block p-6 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-              >
-                <h2 className="text-xl font-semibold mb-2">{event.title}</h2>
-                <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                  <p>
-                    Starts: {new Date(event.starts_at).toLocaleString()}
-                  </p>
-                  <p>Duration: {event.duration_minutes} minutes</p>
-                  <p>Capacity: {event.capacity}</p>
-                  <p className="capitalize">Status: {event.status}</p>
+          <>
+            {/* My Events Section */}
+            {user && !user.is_anonymous && myEvents.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold mb-4 text-text">My Events</h2>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
+                  {myEvents.map((event) => (
+                    <Card key={event.id} className="h-full border-2 border-accent">
+                      <div className="flex items-start justify-between mb-3">
+                        <h3 className="text-xl font-semibold text-text flex-1 pr-2">
+                          {event.title}
+                        </h3>
+                        <Badge variant={event.status}>
+                          {event.status}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2 text-sm text-text-muted mb-4">
+                        <div className="flex items-center gap-2">
+                          <span>📅</span>
+                          <span>{new Date(event.starts_at).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span>🔒</span>
+                          <span className="capitalize">{event.visibility || 'public'}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="flex-1"
+                          asChild
+                        >
+                          <Link href={`/events/${event.id}/ticket`}>Join</Link>
+                        </Button>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className="flex-1"
+                          asChild
+                        >
+                          <Link href={`/events/${event.id}/manage`}>Manage</Link>
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
                 </div>
-              </Link>
-            ))}
-          </div>
+              </div>
+            )}
+
+            {/* All Events Section */}
+            <div>
+              <h2 className="text-2xl font-bold mb-4 text-text">
+                {user && !user.is_anonymous && myEvents.length > 0 ? 'All Events' : 'Events'}
+              </h2>
+              {events.length === 0 ? (
+                <Card>
+                  <EmptyState
+                    title="No events yet"
+                    description="Tumbleweeds roll by. The void awaits your creation. Time to cook up something amazing! (Or at least mildly interesting.)"
+                    icon="🎪"
+                    action={
+                      <Button variant="primary" asChild>
+                        <Link href="/">Create Event + Tickets</Link>
+                      </Button>
+                    }
+                  />
+                </Card>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {events.map((event) => (
+                    <Link key={event.id} href={`/events/${event.id}/ticket`}>
+                      <Card interactive className="h-full">
+                        <div className="flex items-start justify-between mb-3">
+                          <h2 className="text-xl font-semibold text-text flex-1 pr-2">
+                            {event.title}
+                          </h2>
+                          <Badge variant={event.status}>
+                            {event.status}
+                          </Badge>
+                        </div>
+                        <div className="space-y-2 text-sm text-text-muted">
+                          <div className="flex items-center gap-2">
+                            <span>📅</span>
+                            <span>{new Date(event.starts_at).toLocaleDateString()}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span>⏱️</span>
+                            <span>{event.duration_minutes} minutes</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span>👥</span>
+                            <span>Capacity: {event.capacity}</span>
+                          </div>
+                          {event.visibility && (
+                            <div className="flex items-center gap-2">
+                              <span>{event.visibility === 'public' ? '🌐' : '🔒'}</span>
+                              <span className="capitalize">{event.visibility}</span>
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
     </main>
