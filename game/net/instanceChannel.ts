@@ -147,6 +147,13 @@ export class InstanceChannel {
         this.handleServerBroadcast('penalty', payload)
       }
     )
+    this.channel.on(
+      'broadcast',
+      { event: 'chat_message' },
+      ({ payload }) => {
+        this.handleServerBroadcast('chat_message', payload)
+      }
+    )
 
     // Subscribe to the channel with proper Promise handling
     return new Promise<void>((resolve, reject) => {
