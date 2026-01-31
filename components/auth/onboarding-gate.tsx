@@ -210,11 +210,9 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
               type="submit"
               disabled={isSubmitting || !displayName.trim()}
               className="w-full"
-              variant="primary"
-              size="lg"
             >
               {isSubmitting ? 'Creating your character...' : 'Enter the 2D Realm'}
-            </Button>
+            </button>
           </form>
         </Card>
       </div>
