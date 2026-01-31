@@ -4,8 +4,18 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { Gamepad2, Calendar, PlusCircle, LogOut, Copy, ArrowRight } from 'lucide-react'
+
+interface EventRow {
+  id: string
+  title: string
+  starts_at: string
+  duration_minutes: number
+  capacity: number
+  status: 'draft' | 'open' | 'closed'
+}
 
 export default function Home() {
   const router = useRouter()
@@ -19,6 +29,8 @@ export default function Home() {
     eventId: string
     ticketCodes: string[]
   } | null>(null)
+  const [ongoingEvents, setOngoingEvents] = useState<EventRow[]>([])
+  const [ongoingLoading, setOngoingLoading] = useState(true)
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -87,65 +99,92 @@ export default function Home() {
     toast.success('Signed out successfully')
   }
 
+  useEffect(() => {
+    async function fetchOngoing() {
+      try {
+        const { data, error } = await supabase
+          .from('events')
+          .select('id, title, starts_at, duration_minutes, capacity, status')
+          .in('status', ['open', 'draft'])
+          .order('starts_at', { ascending: false })
+          .limit(6)
+
+        if (!error) setOngoingEvents(data || [])
+      } catch {
+        // ignore
+      } finally {
+        setOngoingLoading(false)
+      }
+    }
+    fetchOngoing()
+  }, [createdEvent])
+
   return (
-    <main className="flex min-h-screen flex-col p-8">
-      <div className="max-w-6xl w-full mx-auto">
+    <main className="min-h-screen bg-background text-text antialiased selection:bg-accent selection:text-text-inverse transition-colors duration-200">
+      <div className="max-w-6xl w-full mx-auto px-6 py-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">2D Events MVP</h1>
-            {profile && (
-              <p className="text-gray-600 dark:text-gray-400">
-                Welcome, <strong>{profile.display_name}</strong> (Avatar: {profile.avatar_id})
-              </p>
-            )}
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10">
+          <div className="flex items-center gap-3">
+            <Gamepad2 className="w-8 h-8 text-accent shrink-0" />
+            <div>
+              <h1 className="font-pixel text-2xl md:text-3xl tracking-tight text-text">
+                2D Events MVP
+              </h1>
+              {profile && (
+                <p className="text-text-muted text-sm mt-0.5">
+                  Welcome, <strong className="text-text">{profile.display_name}</strong>
+                  <span className="text-text-muted/80"> · Avatar {profile.avatar_id}</span>
+                </p>
+              )}
+            </div>
           </div>
           <button
             onClick={handleSignOut}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-surface transition-colors text-sm font-medium text-text"
           >
+            <LogOut className="w-4 h-4" />
             Sign Out
           </button>
-        </div>
+        </header>
 
-        {/* Navigation CTAs */}
-        <div className="grid gap-4 md:grid-cols-2 mb-8">
-          <Link
-            href="/events"
-            className="block p-6 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-          >
-            <h2 className="text-2xl font-semibold mb-2">Browse Events</h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              View all available events and join with a ticket code
-            </p>
-          </Link>
-
-          <div className="p-6 border rounded-lg">
-            <h2 className="text-2xl font-semibold mb-2">Create Event + Tickets</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+        {/* Primary actions: Create */}
+        <section className="flex mb-12">
+          <div className="p-6 md:p-8 rounded-2xl bg-surface border border-border w-full">
+            <div className="w-12 h-12 rounded-lg bg-surface-elevated border border-border flex items-center justify-center mb-5">
+              <PlusCircle className="w-6 h-6 text-accent" />
+            </div>
+            <h2 className="font-pixel text-xl mb-2 tracking-tight text-text">
+              Create Event + Tickets
+            </h2>
+            <p className="text-text-muted mb-6">
               Create a new event and generate ticket codes for participants
             </p>
 
             {createdEvent ? (
               <div className="space-y-4">
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <p className="font-semibold mb-2">Event created!</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    Event ID: <code className="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">{createdEvent.eventId}</code>
+                <div className="p-4 rounded-xl bg-teal/10 border border-teal/30">
+                  <p className="font-semibold text-text mb-2">Event created!</p>
+                  <p className="text-sm text-text-muted mb-2">
+                    Event ID:{' '}
+                    <code className="bg-surface-elevated border border-border px-2 py-1 rounded text-text text-xs">
+                      {createdEvent.eventId}
+                    </code>
                   </p>
                   <div className="mt-4">
-                    <p className="text-sm font-semibold mb-2">Ticket Codes:</p>
+                    <p className="text-sm font-semibold text-text mb-2">Ticket Codes:</p>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {createdEvent.ticketCodes.map((code) => (
                         <div
                           key={code}
-                          className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border"
+                          className="flex items-center justify-between p-2 rounded-lg bg-background border border-border"
                         >
-                          <code className="text-sm">{code}</code>
+                          <code className="text-sm text-text truncate mr-2">{code}</code>
                           <button
+                            type="button"
                             onClick={() => copyTicketCode(code)}
-                            className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                            className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-accent text-text-inverse text-xs hover:bg-accent-hover transition-colors"
                           >
+                            <Copy className="w-3.5 h-3.5" />
                             Copy
                           </button>
                         </div>
@@ -153,20 +192,22 @@ export default function Home() {
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => {
                       setCreatedEvent(null)
                       router.push('/events')
                     }}
-                    className="mt-4 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="mt-4 w-full py-3 rounded-lg bg-accent text-text-inverse hover:bg-accent-hover transition-colors font-medium flex items-center justify-center gap-2"
                   >
                     View Event
+                    <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               </div>
             ) : (
               <form onSubmit={handleCreateEvent} className="space-y-4">
                 <div>
-                  <label htmlFor="eventTitle" className="block text-sm font-medium mb-2">
+                  <label htmlFor="eventTitle" className="mb-2 block text-sm font-medium text-text">
                     Event Title
                   </label>
                   <input
@@ -176,14 +217,14 @@ export default function Home() {
                     onChange={(e) => setEventTitle(e.target.value)}
                     placeholder="My Awesome Event"
                     required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-text placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="duration" className="block text-sm font-medium mb-2">
-                      Duration (minutes)
+                    <label htmlFor="duration" className="mb-2 block text-sm font-medium text-text">
+                      Duration (min)
                     </label>
                     <input
                       id="duration"
@@ -192,12 +233,11 @@ export default function Home() {
                       onChange={(e) => setEventDuration(parseInt(e.target.value) || 60)}
                       min="1"
                       required
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-text focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                     />
                   </div>
-
                   <div>
-                    <label htmlFor="capacity" className="block text-sm font-medium mb-2">
+                    <label htmlFor="capacity" className="mb-2 block text-sm font-medium text-text">
                       Capacity
                     </label>
                     <input
@@ -207,13 +247,13 @@ export default function Home() {
                       onChange={(e) => setEventCapacity(parseInt(e.target.value) || 50)}
                       min="1"
                       required
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-text focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="ticketCount" className="block text-sm font-medium mb-2">
+                  <label htmlFor="ticketCount" className="mb-2 block text-sm font-medium text-text">
                     Number of Tickets
                   </label>
                   <input
@@ -224,21 +264,90 @@ export default function Home() {
                     min="1"
                     max="100"
                     required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-text focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={isCreatingEvent}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-full py-3 rounded-lg bg-accent text-text-inverse hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium shadow-lg shadow-accent/20"
                 >
                   {isCreatingEvent ? 'Creating...' : 'Create Event & Generate Tickets'}
                 </button>
               </form>
             )}
           </div>
-        </div>
+        </section>
+
+        {/* Ongoing events */}
+        <section className="border-t border-border pt-10">
+          <h2 className="font-pixel text-xl md:text-2xl tracking-tight text-text mb-6">
+            Ongoing events
+          </h2>
+          {ongoingLoading ? (
+            <div className="flex items-center gap-3 text-text-muted py-8">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-border border-t-accent" />
+              <span>Loading events...</span>
+            </div>
+          ) : ongoingEvents.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-surface p-8 text-center">
+              <p className="text-text-muted mb-2">No ongoing events yet.</p>
+              <p className="text-sm text-text-muted mb-4">
+                Create one above or browse all events.
+              </p>
+              <Link
+                href="/events"
+                className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-text-inverse text-sm font-medium hover:bg-accent-hover transition-colors"
+              >
+                Browse all events
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {ongoingEvents.map((event) => (
+                <Link
+                  key={event.id}
+                  href={`/events/${event.id}/ticket`}
+                  className="block p-5 rounded-xl bg-surface border border-border hover:border-accent/50 transition-all duration-300"
+                >
+                  <h3 className="font-pixel text-base tracking-tight text-text mb-2 truncate">
+                    {event.title}
+                  </h3>
+                  <div className="text-sm text-text-muted space-y-1">
+                    <p>
+                      Starts: {new Date(event.starts_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
+                    </p>
+                    <p>
+                      {event.duration_minutes} min · {event.capacity} capacity
+                    </p>
+                    <span
+                      className={`inline-block mt-2 text-xs font-medium px-2 py-0.5 rounded capitalize ${
+                        event.status === 'open'
+                          ? 'bg-teal/20 text-teal'
+                          : 'bg-surface-elevated text-text-muted'
+                      }`}
+                    >
+                      {event.status}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+          {!ongoingLoading && ongoingEvents.length > 0 && (
+            <div className="mt-6 text-center">
+              <Link
+                href="/events"
+                className="inline-flex items-center gap-2 text-accent font-medium text-sm hover:underline"
+              >
+                View all events
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          )}
+        </section>
       </div>
     </main>
   )

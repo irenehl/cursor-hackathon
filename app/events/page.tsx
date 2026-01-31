@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { Gamepad2, Calendar, ArrowLeft, PlusCircle } from 'lucide-react'
 
 interface Event {
   id: string
@@ -17,7 +17,6 @@ interface Event {
 }
 
 export default function EventsPage() {
-  const router = useRouter()
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -49,63 +48,97 @@ export default function EventsPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen flex-col p-8">
+      <main className="min-h-screen bg-background text-text antialiased px-6 py-8">
         <div className="max-w-6xl w-full mx-auto">
-          <h1 className="text-4xl font-bold mb-8">Events</h1>
-          <div className="text-gray-500">Loading events...</div>
+          <div className="flex items-center gap-3 mb-8">
+            <Gamepad2 className="w-8 h-8 text-accent shrink-0" />
+            <h1 className="font-pixel text-2xl md:text-3xl tracking-tight text-text">
+              Events
+            </h1>
+          </div>
+          <div className="flex items-center gap-3 text-text-muted py-12">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-border border-t-accent" />
+            <span>Loading events...</span>
+          </div>
         </div>
       </main>
     )
   }
 
   return (
-    <main className="flex min-h-screen flex-col p-8">
-      <div className="max-w-6xl w-full mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold">Events</h1>
-          <div className="flex gap-4">
-            <Link
-              href="/"
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            >
-              ← Home
-            </Link>
+    <main className="min-h-screen bg-background text-text antialiased selection:bg-accent selection:text-text-inverse transition-colors duration-200">
+      <div className="max-w-6xl w-full mx-auto px-6 py-8">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10">
+          <div className="flex items-center gap-3">
+            <Gamepad2 className="w-8 h-8 text-accent shrink-0" />
+            <h1 className="font-pixel text-2xl md:text-3xl tracking-tight text-text">
+              Events
+            </h1>
           </div>
-        </div>
-        
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-surface transition-colors text-sm font-medium text-text"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Home
+          </Link>
+        </header>
+
         {error ? (
-          <div className="text-red-500">
-            Error loading events: {error}
+          <div className="rounded-2xl border border-accent/50 bg-accent-muted/20 p-6 text-accent">
+            <p className="font-medium mb-1">Error loading events</p>
+            <p className="text-sm opacity-90">{error}</p>
           </div>
         ) : events.length === 0 ? (
-          <div className="text-center py-12 border rounded-lg">
-            <p className="text-gray-500 mb-4">No events found.</p>
-            <p className="text-sm text-gray-400 mb-6">
+          <div className="rounded-2xl border border-border bg-surface p-12 text-center">
+            <div className="w-14 h-14 rounded-xl bg-surface-elevated border border-border flex items-center justify-center mx-auto mb-5">
+              <Calendar className="w-7 h-7 text-text-muted" />
+            </div>
+            <p className="text-text-muted mb-2">No events found.</p>
+            <p className="text-sm text-text-muted mb-6">
               Create a demo event to get started!
             </p>
             <Link
               href="/"
-              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-text-inverse font-medium hover:bg-accent-hover transition-colors shadow-lg shadow-accent/20"
             >
+              <PlusCircle className="w-5 h-5" />
               Create Event + Tickets
             </Link>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {events.map((event) => (
               <Link
                 key={event.id}
                 href={`/events/${event.id}/ticket`}
-                className="block p-6 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="block p-5 rounded-xl bg-surface border border-border hover:border-accent/50 transition-all duration-300"
               >
-                <h2 className="text-xl font-semibold mb-2">{event.title}</h2>
-                <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                <h2 className="font-pixel text-base md:text-lg tracking-tight text-text mb-3 truncate">
+                  {event.title}
+                </h2>
+                <div className="text-sm text-text-muted space-y-1">
                   <p>
-                    Starts: {new Date(event.starts_at).toLocaleString()}
+                    Starts:{' '}
+                    {new Date(event.starts_at).toLocaleString(undefined, {
+                      dateStyle: 'short',
+                      timeStyle: 'short',
+                    })}
                   </p>
-                  <p>Duration: {event.duration_minutes} minutes</p>
-                  <p>Capacity: {event.capacity}</p>
-                  <p className="capitalize">Status: {event.status}</p>
+                  <p>
+                    {event.duration_minutes} min · {event.capacity} capacity
+                  </p>
+                  <span
+                    className={`inline-block mt-2 text-xs font-medium px-2 py-0.5 rounded capitalize ${
+                      event.status === 'open'
+                        ? 'bg-teal/20 text-teal'
+                        : event.status === 'closed'
+                          ? 'bg-surface-elevated text-text-muted'
+                          : 'bg-accent-muted/30 text-accent'
+                    }`}
+                  >
+                    {event.status}
+                  </span>
                 </div>
               </Link>
             ))}

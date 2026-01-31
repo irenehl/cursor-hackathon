@@ -45,27 +45,24 @@ export default function Home() {
           </div>
           <div className='flex items-center gap-4 md:gap-6'>
             <div className='hidden md:flex items-center gap-6 text-lg font-medium'>
-              <a
-                href='#features'
-                className='hover:text-text transition-colors'
-              >
+              <a href='#features' className='hover:text-text transition-colors'>
                 {t("nav.features")}
               </a>
-              <a
-                href='#pricing'
-                className='hover:text-text transition-colors'
-              >
+              <a href='#pricing' className='hover:text-text transition-colors'>
                 {t("nav.pricing")}
               </a>
               <a
-                href='#'
+                href='/'
                 className='text-text-muted hover:text-text transition-colors'
               >
                 {t("nav.login")}
               </a>
-              <button className='bg-accent hover:bg-accent-hover text-text-inverse px-5 py-2 rounded-lg transition-all shadow-lg shadow-accent/20 text-base font-medium'>
+              <a
+                href='/'
+                className='bg-accent hover:bg-accent-hover text-text-inverse px-5 py-2 rounded-lg transition-all shadow-lg shadow-accent/20 text-base font-medium'
+              >
                 {t("nav.createEvent")}
-              </button>
+              </a>
               <button
                 type='button'
                 onClick={switchLocale}
@@ -74,7 +71,9 @@ export default function Home() {
                 title={locale === "en" ? "Español" : "English"}
               >
                 <Languages className='w-5 h-5' />
-                <span className='hidden sm:inline'>{locale === "en" ? "ES" : "EN"}</span>
+                <span className='hidden sm:inline'>
+                  {locale === "en" ? "ES" : "EN"}
+                </span>
               </button>
             </div>
           </div>
@@ -86,9 +85,8 @@ export default function Home() {
         <div className='absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-accent opacity-10 blur-[120px] -z-10 rounded-full'></div>
 
         <div className='font-pixel inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-surface text-xs font-medium mb-8'>
-          <span className='flex h-2 w-2 rounded-full bg-accent'>
-            {t("badge")}
-          </span>
+          <span className='flex h-2 w-2 rounded-full bg-accent'></span>
+          {t("badge")}
         </div>
 
         <h1 className='font-pixel text-3xl md:text-5xl tracking-tight leading-[1.3] mb-8 text-text'>
@@ -253,9 +251,7 @@ export default function Home() {
                 <h3 className='font-pixel text-base text-text mb-2'>
                   {t("step1Title")}
                 </h3>
-                <p className='text-lg text-text-muted'>
-                  {t("step1Desc")}
-                </p>
+                <p className='text-lg text-text-muted'>{t("step1Desc")}</p>
               </div>
             </div>
 
@@ -270,9 +266,7 @@ export default function Home() {
                 <h3 className='font-pixel text-base text-text mb-2'>
                   {t("step2Title")}
                 </h3>
-                <p className='text-lg text-text-muted'>
-                  {t("step2Desc")}
-                </p>
+                <p className='text-lg text-text-muted'>{t("step2Desc")}</p>
               </div>
             </div>
 
@@ -287,9 +281,7 @@ export default function Home() {
                 <h3 className='font-pixel text-base text-text mb-2'>
                   {t("step3Title")}
                 </h3>
-                <p className='text-lg text-text-muted'>
-                  {t("step3Desc")}
-                </p>
+                <p className='text-lg text-text-muted'>{t("step3Desc")}</p>
               </div>
             </div>
           </div>
@@ -302,9 +294,7 @@ export default function Home() {
           <h2 className='font-pixel text-3xl md:text-4xl tracking-tight mb-6 text-text'>
             {t("pricingTitle")}
           </h2>
-          <p className='text-xl text-text-muted'>
-            {t("pricingSubtitle")}
-          </p>
+          <p className='text-xl text-text-muted'>{t("pricingSubtitle")}</p>
         </div>
 
         <div className='grid md:grid-cols-3 gap-8 items-start'>

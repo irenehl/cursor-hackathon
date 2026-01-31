@@ -27,10 +27,10 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
   // If loading, show loading spinner
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600 mx-auto"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-border border-t-accent mx-auto"></div>
+          <p className="text-text-muted">Loading...</p>
         </div>
       </div>
     )
@@ -39,16 +39,21 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
   // If not authenticated, show auth options
   if (!user || !session) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-        <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
-          <h1 className="mb-6 text-2xl font-bold text-gray-900">Welcome to 2D Events</h1>
-          
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md rounded-2xl bg-surface border border-border p-8 shadow-lg">
+          <h1 className="font-pixel mb-6 text-2xl tracking-tight text-text">
+            Welcome to 2D Events
+          </h1>
+
           {!emailSent ? (
             <div className="space-y-4">
-              <p className="text-gray-600">Sign in to continue</p>
-              
+              <p className="text-text-muted">Sign in to continue</p>
+
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="email"
+                  className="mb-2 block text-sm font-medium text-text"
+                >
                   Email
                 </label>
                 <input
@@ -57,7 +62,7 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full rounded-md border text-black border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-text placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 />
               </div>
 
@@ -78,17 +83,17 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
                   }
                 }}
                 disabled={isSubmitting}
-                className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full rounded-lg bg-accent px-4 py-2 text-text-inverse hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
               >
                 {isSubmitting ? 'Sending...' : 'Send Magic Link'}
               </button>
 
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
+                  <div className="w-full border-t border-border"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="bg-white px-2 text-gray-500">OR</span>
+                  <span className="bg-surface px-2 text-text-muted">OR</span>
                 </div>
               </div>
 
@@ -102,25 +107,26 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
                   }
                 }}
                 disabled={isSubmitting}
-                className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full rounded-lg border border-border-strong bg-surface px-4 py-2 text-text hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
               >
                 {isSubmitting ? 'Signing in...' : 'Continue Anonymously'}
               </button>
             </div>
           ) : (
             <div className="space-y-4">
-              <p className="text-gray-600">
-                We sent a magic link to <strong>{email}</strong>
+              <p className="text-text-muted">
+                We sent a magic link to <strong className="text-text">{email}</strong>
               </p>
-              <p className="text-sm text-gray-500">
-                Click the link in your email to sign in. You can close this window.
+              <p className="text-sm text-text-muted">
+                Click the link in your email to sign in. You can close this
+                window.
               </p>
               <button
                 onClick={() => {
                   setEmailSent(false)
                   setEmail('')
                 }}
-                className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50"
+                className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-text hover:bg-surface-elevated transition-colors"
               >
                 Use a different email
               </button>
@@ -134,10 +140,14 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
   // If authenticated but no profile, show profile setup
   if (!profile) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-        <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
-          <h1 className="mb-6 text-2xl font-bold text-gray-900">Complete Your Profile</h1>
-          <p className="mb-6 text-gray-600">Set up your display name and avatar to continue</p>
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md rounded-2xl bg-surface border border-border p-8 shadow-lg">
+          <h1 className="font-pixel mb-6 text-2xl tracking-tight text-text">
+            Complete Your Profile
+          </h1>
+          <p className="mb-6 text-text-muted">
+            Set up your display name and avatar to continue
+          </p>
 
           <form
             onSubmit={async (e) => {
@@ -148,8 +158,7 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
               }
 
               setIsSubmitting(true)
-              
-              // Upsert profile
+
               const { error } = await supabase
                 .from('profiles')
                 .upsert(
@@ -158,9 +167,7 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
                     display_name: displayName.trim(),
                     avatar_id: avatarId,
                   },
-                  {
-                    onConflict: 'user_id',
-                  }
+                  { onConflict: 'user_id' }
                 )
 
               setIsSubmitting(false)
@@ -175,7 +182,10 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
             className="space-y-4"
           >
             <div>
-              <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="displayName"
+                className="mb-2 block text-sm font-medium text-text"
+              >
                 Display Name
               </label>
               <input
@@ -185,12 +195,12 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Your name"
                 required
-                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-text placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-medium text-text">
                 Avatar
               </label>
               <div className="grid grid-cols-6 gap-2">
@@ -199,19 +209,19 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
                     key={id}
                     type="button"
                     onClick={() => setAvatarId(id)}
-                    className={`aspect-square rounded-md border-2 p-2 transition-colors ${
+                    className={`aspect-square rounded-lg border-2 p-2 transition-colors ${
                       avatarId === id
-                        ? 'border-blue-600 bg-blue-50'
-                        : 'border-gray-300 hover:border-gray-400'
+                        ? 'border-accent bg-accent-muted/30'
+                        : 'border-border hover:border-border-strong hover:bg-surface-elevated'
                     }`}
                   >
-                    <div className="h-full w-full rounded bg-gray-200 flex items-center justify-center text-xs font-medium">
+                    <div className="flex h-full w-full items-center justify-center rounded bg-surface-elevated text-xs font-medium text-text">
                       {id}
                     </div>
                   </button>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-gray-500">
+              <p className="mt-2 text-xs text-text-muted">
                 Avatar images will be added later. For now, select a number.
               </p>
             </div>
@@ -219,7 +229,7 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
             <button
               type="submit"
               disabled={isSubmitting || !displayName.trim()}
-              className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-lg bg-accent px-4 py-2 text-text-inverse hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
             >
               {isSubmitting ? 'Saving...' : 'Continue'}
             </button>
