@@ -55,17 +55,17 @@ export default function AuthPage() {
       <Card className="w-full max-w-md">
         <div className="text-center mb-6">
           <div className="text-4xl mb-4">👋</div>
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-text">
-            Welcome to 2D Events
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-text font-pixel">
+            Welcome to Pixel Meet
           </h1>
           <p className="text-text-muted text-sm">
             Where professional events meet playful 2D avatars
           </p>
-          {isMockAuth && (
+          {/* {isMockAuth && (
             <p className="text-text-muted text-xs mt-2">
               (Using offline mode - Supabase auth unavailable)
             </p>
-          )}
+          )} */}
         </div>
         
         {!emailSent ? (

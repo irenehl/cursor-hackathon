@@ -31,14 +31,19 @@ function generateUUIDFromNickname(nickname: string): string {
   }
   
   // Convert to UUID format (deterministic)
-  // Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
-  const h1 = Math.abs(hash1).toString(16).padStart(8, '0')
-  const h2 = Math.abs(hash2).toString(16).padStart(4, '0')
-  const h3 = Math.abs((hash1 ^ hash2)).toString(16).padStart(4, '0')
-  const h4 = Math.abs((hash1 * hash2) % 0x10000).toString(16).padStart(4, '0')
-  const h5 = Math.abs((hash1 + hash2)).toString(16).padStart(12, '0')
+  // Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx (8-4-4-4-12)
+  // Ensure each segment is exactly the right length by using modulo and slice
+  const h1 = (Math.abs(hash1) & 0xffffffff).toString(16).padStart(8, '0').slice(0, 8)
+  const h2 = (Math.abs(hash2) & 0xffff).toString(16).padStart(4, '0').slice(0, 4)
+  const h3 = (Math.abs(hash1 ^ hash2) & 0xfff).toString(16).padStart(3, '0').slice(0, 3)
+  const h4 = (Math.abs((hash1 * hash2) % 0x1000) & 0xfff).toString(16).padStart(3, '0').slice(0, 3)
+  const h5 = (Math.abs(hash1 + hash2) & 0xffffffffffff).toString(16).padStart(12, '0').slice(0, 12)
   
-  return `${h1}-${h2}-4${h3.slice(1)}-8${h4.slice(1)}-${h5}`
+  const uuid = `${h1}-${h2}-4${h3}-8${h4}-${h5}`
+  // #region agent log
+  fetch('http://127.0.0.1:7252/ingest/dfa93302-39a4-440c-87d8-1ed057028eeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'mock-auth-context.tsx:generateUUIDFromNickname',message:'UUID generated',data:{nickname,normalized,uuid,h1,h2,h3,h4,h5,uuidLength:uuid.length,segments:uuid.split('-').map(s=>s.length)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
+  // #endregion
+  return uuid
 }
 
 // Create a mock User object from nickname

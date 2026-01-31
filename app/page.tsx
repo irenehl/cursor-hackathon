@@ -15,6 +15,7 @@ import {
   ArrowRight,
   Languages,
 } from "lucide-react";
+import { Tooltip } from "@/components/ui/tooltip";
 
 const LOCALE_COOKIE = "NEXT_LOCALE";
 
@@ -105,12 +106,14 @@ export default function LandingPage() {
             {t("ctaPrimary")}
             <ArrowRight className='w-5 h-5' />
           </Link>
-          <Link
-            href='/events'
-            className='w-full md:w-auto bg-surface border border-border-strong text-text h-14 px-8 rounded-xl hover:bg-surface-elevated transition-all font-medium text-lg flex items-center justify-center gap-2'
-          >
-            {t("ctaSecondary")}
-          </Link>
+          <Tooltip content="We're in a hackathon - why are you expecting a video demo?" className="w-full md:w-auto">
+            <Link
+              href='/events'
+              className='w-full md:w-auto bg-surface border border-border-strong text-text h-14 px-8 rounded-xl hover:bg-surface-elevated transition-all font-medium text-lg flex items-center justify-center gap-2'
+            >
+              {t("ctaSecondary")}
+            </Link>
+          </Tooltip>
         </div>
       </header>
 

@@ -29,6 +29,9 @@ export default function Home() {
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault()
+    // #region agent log
+    fetch('http://127.0.0.1:7252/ingest/dfa93302-39a4-440c-87d8-1ed057028eeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/home/page.tsx:handleCreateEvent:entry',message:'handleCreateEvent called',data:{hasUser:!!user,userId:user?.id,userIdLength:user?.id?.length,userIdSegments:user?.id?.split('-').map((s:string)=>s.length),isMockAuth,isAnonymous,eventTitle:eventTitle.trim()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H2,H3,H4'})}).catch(()=>{});
+    // #endregion
     if (!user || !eventTitle.trim()) {
       toast.error('Please enter an event title')
       return
@@ -41,20 +44,27 @@ export default function Home() {
         return
       }
 
+      const eventData = {
+        title: eventTitle.trim(),
+        starts_at: new Date().toISOString(),
+        duration_minutes: parseInt(eventDuration, 10) || 60,
+        capacity: parseInt(eventCapacity, 10) || 50,
+        host_user_id: user.id,
+        status: 'open',
+        visibility: eventVisibility,
+      }
+      // #region agent log
+      fetch('http://127.0.0.1:7252/ingest/dfa93302-39a4-440c-87d8-1ed057028eeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/home/page.tsx:handleCreateEvent:beforeInsert',message:'About to insert event',data:{eventData,hostUserId:eventData.host_user_id,hostUserIdLength:eventData.host_user_id?.length,hostUserIdSegments:eventData.host_user_id?.split('-').map((s:string)=>s.length)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
+      // #endregion
       const { data: event, error: eventError } = await supabase
         .from('events')
-        .insert({
-          title: eventTitle.trim(),
-          starts_at: new Date().toISOString(),
-          duration_minutes: parseInt(eventDuration, 10) || 60,
-          capacity: parseInt(eventCapacity, 10) || 50,
-          host_user_id: user.id,
-          status: 'open',
-          visibility: eventVisibility,
-        })
+        .insert(eventData)
         .select()
         .single()
 
+      // #region agent log
+      fetch('http://127.0.0.1:7252/ingest/dfa93302-39a4-440c-87d8-1ed057028eeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/home/page.tsx:handleCreateEvent:afterInsert',message:'Event insert result',data:{hasEvent:!!event,eventId:event?.id,eventIdLength:event?.id?.length,eventIdSegments:event?.id?.split('-').map((s:string)=>s.length),hasError:!!eventError,errorCode:eventError?.code,errorMessage:eventError?.message,errorDetails:eventError?.details,errorHint:eventError?.hint},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H5'})}).catch(()=>{});
+      // #endregion
       if (eventError) {
         // If using mock auth and we get a foreign key constraint error, provide helpful message
         if (isMockAuth && (
@@ -65,7 +75,19 @@ export default function Home() {
         )) {
           throw new Error(
             'Cannot create event: The database foreign key constraint prevents mock user IDs. ' +
-            'Please run migration 0006_relax_host_user_fk.sql to temporarily remove the constraint. ' +
+            'Please run migration 0010_relax_host_user_fk.sql to temporarily remove the constraint. ' +
+            'Run: supabase migration up (or apply the migration through your Supabase dashboard)'
+          )
+        }
+        // If using mock auth and we get an RLS policy error, provide helpful message
+        if (isMockAuth && (
+          eventError.code === '42501' || // Insufficient privilege / RLS violation
+          eventError.message?.includes('row-level security') ||
+          eventError.message?.includes('violates row-level security policy')
+        )) {
+          throw new Error(
+            'Cannot create event: Row-level security policy prevents mock auth users from creating events. ' +
+            'Please run migration 0011_mock_auth_rls_fix.sql to allow mock auth users to create events. ' +
             'Run: supabase migration up (or apply the migration through your Supabase dashboard)'
           )
         }
@@ -75,6 +97,9 @@ export default function Home() {
       const ticketCodes: string[] = []
       const tickets = []
       const parsedTicketCount = parseInt(ticketCount, 10) || 10
+      // #region agent log
+      fetch('http://127.0.0.1:7252/ingest/dfa93302-39a4-440c-87d8-1ed057028eeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/home/page.tsx:handleCreateEvent:beforeTickets',message:'About to create tickets',data:{eventId:event.id,eventIdLength:event.id.length,eventIdSegments:event.id.split('-').map((s:string)=>s.length),parsedTicketCount,ticketCount},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H5'})}).catch(()=>{});
+      // #endregion
       for (let i = 0; i < parsedTicketCount; i++) {
         const code = `TICKET-${event.id.slice(0, 8)}-${i + 1}`
         ticketCodes.push(code)
@@ -84,7 +109,9 @@ export default function Home() {
           is_public: eventVisibility === 'public',
         })
       }
-
+      // #region agent log
+      fetch('http://127.0.0.1:7252/ingest/dfa93302-39a4-440c-87d8-1ed057028eeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/home/page.tsx:handleCreateEvent:beforeTicketInsert',message:'About to insert tickets',data:{ticketsCount:tickets.length,firstTicket:tickets[0],firstTicketEventId:tickets[0]?.event_id,firstTicketEventIdLength:tickets[0]?.event_id?.length,firstTicketEventIdSegments:tickets[0]?.event_id?.split('-').map((s:string)=>s.length)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H5'})}).catch(()=>{});
+      // #endregion
       const { error: ticketsError } = await supabase
         .from('tickets')
         .insert(tickets)
@@ -98,6 +125,9 @@ export default function Home() {
       toast.success('Event created! Your tickets are ready to distribute.')
       setEventTitle('')
     } catch (error: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7252/ingest/dfa93302-39a4-440c-87d8-1ed057028eeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/home/page.tsx:handleCreateEvent:catch',message:'Error caught',data:{error:JSON.stringify(error),errorMessage:error?.message,errorCode:error?.code,errorDetails:error?.details,errorHint:error?.hint,errorString:String(error),userId:user?.id,isMockAuth},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1,H2,H3,H4,H5'})}).catch(()=>{});
+      // #endregion
       console.error('Error creating event:', error)
       // Log more details about the error
       if (error?.message) {
