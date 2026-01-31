@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
@@ -46,16 +45,10 @@ export default function LandingPage() {
           </div>
           <div className='flex items-center gap-4 md:gap-6'>
             <div className='hidden md:flex items-center gap-6 text-lg font-medium'>
-              <a
-                href='#features'
-                className='hover:text-text transition-colors'
-              >
+              <a href='#features' className='hover:text-text transition-colors'>
                 {t("nav.features")}
               </a>
-              <a
-                href='#pricing'
-                className='hover:text-text transition-colors'
-              >
+              <a href='#pricing' className='hover:text-text transition-colors'>
                 {t("nav.pricing")}
               </a>
               <Link
@@ -64,7 +57,10 @@ export default function LandingPage() {
               >
                 {t("nav.login")}
               </Link>
-              <Link href="/home" className='bg-accent hover:bg-accent-hover text-text-inverse px-5 py-2 rounded-lg transition-all shadow-lg shadow-accent/20 text-base font-medium'>
+              <Link
+                href='/home'
+                className='bg-accent hover:bg-accent-hover text-text-inverse px-5 py-2 rounded-lg transition-all shadow-lg shadow-accent/20 text-base font-medium'
+              >
                 {t("nav.createEvent")}
               </Link>
               <button
@@ -75,7 +71,9 @@ export default function LandingPage() {
                 title={locale === "en" ? "Español" : "English"}
               >
                 <Languages className='w-5 h-5' />
-                <span className='hidden sm:inline'>{locale === "en" ? "ES" : "EN"}</span>
+                <span className='hidden sm:inline'>
+                  {locale === "en" ? "ES" : "EN"}
+                </span>
               </button>
             </div>
           </div>
@@ -87,9 +85,8 @@ export default function LandingPage() {
         <div className='absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-accent opacity-10 blur-[120px] -z-10 rounded-full'></div>
 
         <div className='font-pixel inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-surface text-xs font-medium mb-8'>
-          <span className='flex h-2 w-2 rounded-full bg-accent'>
-            {t("badge")}
-          </span>
+          <span className='flex h-2 w-2 rounded-full bg-accent'></span>
+          {t("badge")}
         </div>
 
         <h1 className='font-pixel text-3xl md:text-5xl tracking-tight leading-[1.3] mb-8 text-text'>
@@ -101,11 +98,17 @@ export default function LandingPage() {
         </p>
 
         <div className='flex flex-col md:flex-row items-center justify-center gap-4'>
-          <Link href="/home" className='w-full md:w-auto bg-accent hover:bg-accent-hover text-text-inverse h-14 px-8 rounded-xl transition-all font-medium text-lg flex items-center justify-center gap-2 shadow-lg shadow-accent/20'>
+          <Link
+            href='/home'
+            className='w-full md:w-auto bg-accent hover:bg-accent-hover text-text-inverse h-14 px-8 rounded-xl transition-all font-medium text-lg flex items-center justify-center gap-2 shadow-lg shadow-accent/20'
+          >
             {t("ctaPrimary")}
             <ArrowRight className='w-5 h-5' />
           </Link>
-          <Link href="/events" className='w-full md:w-auto bg-surface border border-border-strong text-text h-14 px-8 rounded-xl hover:bg-surface-elevated transition-all font-medium text-lg'>
+          <Link
+            href='/events'
+            className='w-full md:w-auto bg-surface border border-border-strong text-text h-14 px-8 rounded-xl hover:bg-surface-elevated transition-all font-medium text-lg flex items-center justify-center gap-2'
+          >
             {t("ctaSecondary")}
           </Link>
         </div>
@@ -152,14 +155,8 @@ export default function LandingPage() {
           </div>
           <div className='relative'>
             <div className='absolute inset-0 bg-linear-to-tr from-accent/20 to-transparent rounded-2xl blur-2xl'></div>
-            <div className='relative bg-surface-elevated border border-border rounded-2xl p-8 aspect-square flex items-center justify-center overflow-hidden'>
-              <div className='grid grid-cols-6 gap-2 opacity-50'>
-                <div className='w-8 h-8 bg-teal/30 rounded-sm'></div>
-                <div className='w-8 h-8 bg-text rounded-sm animate-pulse'></div>
-                <div className='w-8 h-8 bg-teal/30 rounded-sm'></div>
-                <div className='w-8 h-8 bg-accent rounded-sm'></div>
-              </div>
-              <div className='absolute text-center'>
+            <div className='relative bg-surface-elevated border border-border rounded-2xl p-8 aspect-square flex flex-col items-center justify-center overflow-hidden'>
+              <div className='text-center'>
                 <Ghost
                   className='w-24 h-24 text-text-muted mx-auto mb-4'
                   strokeWidth={1}
@@ -167,6 +164,12 @@ export default function LandingPage() {
                 <p className='font-pixel text-xs text-accent'>
                   {t("problemVisualLabel")}
                 </p>
+              </div>
+              <div className='flex gap-3 items-center justify-center opacity-50'>
+                <div className='w-8 h-8 bg-teal/30 rounded-sm'></div>
+                <div className='w-8 h-8 bg-text rounded-sm animate-pulse'></div>
+                <div className='w-8 h-8 bg-teal/30 rounded-sm'></div>
+                <div className='w-8 h-8 bg-accent rounded-sm'></div>
               </div>
             </div>
           </div>
@@ -254,9 +257,7 @@ export default function LandingPage() {
                 <h3 className='font-pixel text-base text-text mb-2'>
                   {t("step1Title")}
                 </h3>
-                <p className='text-lg text-text-muted'>
-                  {t("step1Desc")}
-                </p>
+                <p className='text-lg text-text-muted'>{t("step1Desc")}</p>
               </div>
             </div>
 
@@ -271,9 +272,7 @@ export default function LandingPage() {
                 <h3 className='font-pixel text-base text-text mb-2'>
                   {t("step2Title")}
                 </h3>
-                <p className='text-lg text-text-muted'>
-                  {t("step2Desc")}
-                </p>
+                <p className='text-lg text-text-muted'>{t("step2Desc")}</p>
               </div>
             </div>
 
@@ -288,9 +287,7 @@ export default function LandingPage() {
                 <h3 className='font-pixel text-base text-text mb-2'>
                   {t("step3Title")}
                 </h3>
-                <p className='text-lg text-text-muted'>
-                  {t("step3Desc")}
-                </p>
+                <p className='text-lg text-text-muted'>{t("step3Desc")}</p>
               </div>
             </div>
           </div>
@@ -303,9 +300,7 @@ export default function LandingPage() {
           <h2 className='font-pixel text-3xl md:text-4xl tracking-tight mb-6 text-text'>
             {t("pricingTitle")}
           </h2>
-          <p className='text-xl text-text-muted'>
-            {t("pricingSubtitle")}
-          </p>
+          <p className='text-xl text-text-muted'>{t("pricingSubtitle")}</p>
         </div>
 
         <div className='grid md:grid-cols-3 gap-8 items-start'>
