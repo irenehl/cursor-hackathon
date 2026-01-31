@@ -30,7 +30,45 @@ export const CHARACTERS: Record<CharacterType, CharacterConfig> = {
 }
 
 /**
+ * Animation metadata for premium characters
+ */
+const PREMIUM_ANIMATIONS = {
+  idleFrames: 4,
+  walkFrames: 6,
+  frameWidth: 32,
+  frameHeight: 32,
+  idleFrameDuration: 200, // ms per frame
+  walkFrameDuration: 150, // ms per frame
+} as const
+
+/**
+ * Get animation paths for premium characters
+ * Returns null for default character
+ */
+export function getPremiumAnimationPaths(characterType: CharacterType): { idle: string; walk: string } | null {
+  if (characterType === 'default') {
+    return null
+  }
+  
+  const character = CHARACTERS[characterType]
+  const name = character.name.replace(' ', '_')
+  
+  return {
+    idle: `${character.spritePath}${name}_Idle_4.png`,
+    walk: `${character.spritePath}${name}_Walk_6.png`,
+  }
+}
+
+/**
+ * Get animation metadata for premium characters
+ */
+export function getPremiumAnimationMetadata() {
+  return PREMIUM_ANIMATIONS
+}
+
+/**
  * Get the avatar path for a character type and avatar ID
+ * @deprecated Use getPremiumAnimationPaths for premium characters
  */
 export function getAvatarPath(characterType: CharacterType, avatarId: number): string {
   const character = CHARACTERS[characterType]

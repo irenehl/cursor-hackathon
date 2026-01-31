@@ -78,6 +78,11 @@ export class LocalPlayer extends Player {
       return this.getState()
     }
 
+    // Update animation state based on movement
+    const isMoving = this.velocity.x !== 0 || this.velocity.y !== 0
+    this.setMoving(isMoving)
+    this.updateAnimation(deltaTime)
+
     const state = this.getState()
     const deltaSeconds = deltaTime / 60 // Assuming 60 FPS base
     const moveX = this.velocity.x * this.speed * deltaSeconds

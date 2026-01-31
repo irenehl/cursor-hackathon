@@ -1,5 +1,5 @@
 import { Container, Sprite, Texture, Graphics, Text, Rectangle } from 'pixi.js'
-import { CharacterType } from '../config/characters'
+import { CharacterType, getPremiumAnimationPaths, getPremiumAnimationMetadata } from '../config/characters'
 
 export interface PlayerState {
   userId: string
@@ -33,6 +33,14 @@ export class Player {
   private freezeEndTime: number = 0
   private fightAnimationFrame: number = 0
   private fightAnimationStartTime: number = 0
+  
+  // Animation state for premium characters
+  private idleFrames: Texture[] | null = null
+  private walkFrames: Texture[] | null = null
+  private animState: 'idle' | 'walk' = 'idle'
+  private frameIndex: number = 0
+  private frameElapsed: number = 0
+  private isPremium: boolean = false
 
   constructor(container: Container, config: PlayerConfig, initialState: PlayerState) {
     this.container = container
@@ -44,25 +52,55 @@ export class Player {
     if (characterType === 'default') {
       // Use pixel-art placeholder for default character
       this.avatarTexture = this.createPixelArtPlaceholder()
-    } else if (avatarPath) {
-      // Load monster sprite and extract first frame from spritesheet
-      try {
-        // Use Texture.fromURL (correct PixiJS v7 API)
-        const fullTexture = await Texture.fromURL(avatarPath)
-        // Monster spritesheets are horizontal strips, each frame is 32x32
-        const frameWidth = 32
-        const frameHeight = 32
-        const frame = new Rectangle(0, 0, frameWidth, frameHeight)
-        // Create a new texture with the frame from the base texture
-        this.avatarTexture = new Texture(fullTexture.baseTexture, frame)
-      } catch (error: any) {
-        console.warn(`Failed to load avatar from ${avatarPath}, using pixel-art placeholder`, error)
-        // Fallback to pixel-art placeholder
-        this.avatarTexture = this.createPixelArtPlaceholder()
-      }
+      this.isPremium = false
     } else {
-      // No avatar path provided, use placeholder
-      this.avatarTexture = this.createPixelArtPlaceholder()
+      // Premium character - load both idle and walk animations
+      const animationPaths = getPremiumAnimationPaths(characterType)
+      if (animationPaths) {
+        try {
+          this.isPremium = true
+          const metadata = getPremiumAnimationMetadata()
+          
+          // Load both spritesheets
+          const [idleTexture, walkTexture] = await Promise.all([
+            Texture.fromURL(animationPaths.idle),
+            Texture.fromURL(animationPaths.walk),
+          ])
+          
+          // Slice idle spritesheet into frames
+          this.idleFrames = []
+          for (let i = 0; i < metadata.idleFrames; i++) {
+            const frame = new Rectangle(i * metadata.frameWidth, 0, metadata.frameWidth, metadata.frameHeight)
+            this.idleFrames.push(new Texture(idleTexture.baseTexture, frame))
+          }
+          
+          // Slice walk spritesheet into frames
+          this.walkFrames = []
+          for (let i = 0; i < metadata.walkFrames; i++) {
+            const frame = new Rectangle(i * metadata.frameWidth, 0, metadata.frameWidth, metadata.frameHeight)
+            this.walkFrames.push(new Texture(walkTexture.baseTexture, frame))
+          }
+          
+          // Initialize animation state
+          this.animState = 'idle'
+          this.frameIndex = 0
+          this.frameElapsed = 0
+          
+          // Set initial sprite to first idle frame
+          this.avatarTexture = this.idleFrames[0]
+        } catch (error: any) {
+          console.warn(`Failed to load premium character animations, using pixel-art placeholder`, error)
+          // Fallback to pixel-art placeholder
+          this.avatarTexture = this.createPixelArtPlaceholder()
+          this.isPremium = false
+          this.idleFrames = null
+          this.walkFrames = null
+        }
+      } else {
+        // Fallback for non-premium non-default (shouldn't happen, but handle gracefully)
+        this.avatarTexture = this.createPixelArtPlaceholder()
+        this.isPremium = false
+      }
     }
     
     if (!this.avatarTexture) {
@@ -213,6 +251,56 @@ export class Player {
   }
 
   /**
+   * Set whether the player is moving (for animation state)
+   */
+  setMoving(moving: boolean): void {
+    if (!this.isPremium || !this.idleFrames || !this.walkFrames) {
+      return // No-op for default character
+    }
+    
+    const newState = moving ? 'walk' : 'idle'
+    if (newState !== this.animState) {
+      this.animState = newState
+      // Reset animation for clean transition
+      this.frameIndex = 0
+      this.frameElapsed = 0
+    }
+  }
+
+  /**
+   * Update animation frames (call from game loop)
+   */
+  updateAnimation(deltaTime: number): void {
+    if (!this.isPremium || !this.idleFrames || !this.walkFrames || !this.sprite) {
+      return // No-op for default character
+    }
+    
+    const metadata = getPremiumAnimationMetadata()
+    const frameDuration = this.animState === 'walk' 
+      ? metadata.walkFrameDuration 
+      : metadata.idleFrameDuration
+    const maxFrames = this.animState === 'walk' 
+      ? metadata.walkFrames 
+      : metadata.idleFrames
+    
+    // Convert deltaTime to milliseconds (assuming deltaTime is normalized to 60fps)
+    const deltaMs = deltaTime * (1000 / 60)
+    this.frameElapsed += deltaMs
+    
+    // Advance frame when duration exceeded
+    while (this.frameElapsed >= frameDuration) {
+      this.frameElapsed -= frameDuration
+      this.frameIndex = (this.frameIndex + 1) % maxFrames
+    }
+    
+    // Update sprite texture to current frame
+    const frames = this.animState === 'walk' ? this.walkFrames : this.idleFrames
+    if (frames && frames[this.frameIndex]) {
+      this.sprite.texture = frames[this.frameIndex]
+    }
+  }
+
+  /**
    * Update fight animation (call from game loop)
    */
   updateFightAnimation(deltaTime: number): void {
@@ -328,6 +416,9 @@ export class Player {
       this.hatOverlay.destroy()
       this.hatOverlay = null
     }
+    // Clean up animation frames (they share baseTexture, so just clear references)
+    this.idleFrames = null
+    this.walkFrames = null
     this.container.destroy({ children: true })
   }
 }

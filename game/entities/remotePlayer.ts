@@ -30,6 +30,11 @@ export class RemotePlayer extends Player {
       return
     }
 
+    // Determine if player is moving (currently interpolating)
+    const isMoving = this.previousState != null && this.interpolationTime < this.interpolationDuration
+    this.setMoving(isMoving)
+    this.updateAnimation(deltaTime)
+
     if (!this.previousState) {
       // No interpolation data yet, use current state directly
       this.updatePosition(this.currentState.x, this.currentState.y)
