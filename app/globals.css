@@ -37,6 +37,7 @@
   --transition-base: 200ms ease-out;
   --transition-slow: 300ms ease-out;
   --transition-bounce: 200ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --transition-pixel: 0.1s steps(4, end);
 
   /* Focus ring styles */
   --focus-ring-width: 2px;
@@ -260,3 +261,217 @@ button, a, input, select, textarea {
     fight-overlay-in 0.3s ease-out forwards,
     fight-overlay-pulse 0.4s ease-in-out 0.35s infinite;
 }
+
+/* Pixel-style animations for landing page */
+@keyframes pixel-glow {
+  0%, 100% {
+    opacity: 0.1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.2;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes pixel-float {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+  }
+  25% {
+    transform: translateY(-10px) translateX(5px);
+  }
+  50% {
+    transform: translateY(-20px) translateX(0);
+  }
+  75% {
+    transform: translateY(-10px) translateX(-5px);
+  }
+}
+
+@keyframes pixel-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pixel-shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes pixel-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pixel-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pixel-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pixel-grid-scan {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 20px 20px;
+  }
+}
+
+@keyframes pixel-icon-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes pixel-number-count {
+  from {
+    opacity: 0;
+    transform: scale(0.5) rotate(-5deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes pixel-card-hover {
+  0% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 4px 6px -1px rgba(4, 21, 31, 0.1);
+  }
+  100% {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 10px 15px -3px rgba(196, 73, 0, 0.2);
+  }
+}
+
+@keyframes pixel-badge-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes pixel-button-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(196, 73, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px 5px rgba(196, 73, 0, 0.3);
+  }
+}
+
+/* Utility classes for pixel animations */
+.pixel-glow {
+  animation: pixel-glow 3s ease-in-out infinite;
+}
+
+.pixel-float {
+  animation: pixel-float 6s ease-in-out infinite;
+}
+
+.pixel-bounce {
+  animation: pixel-bounce 2s ease-in-out infinite;
+}
+
+.pixel-shake {
+  animation: pixel-shake 0.5s ease-in-out;
+}
+
+.pixel-fade-in {
+  animation: pixel-fade-in 0.6s ease-out forwards;
+}
+
+.pixel-slide-in-left {
+  animation: pixel-slide-in-left 0.6s ease-out forwards;
+}
+
+.pixel-slide-in-right {
+  animation: pixel-slide-in-right 0.6s ease-out forwards;
+}
+
+.pixel-icon-pulse {
+  animation: pixel-icon-pulse 2s ease-in-out infinite;
+}
+
+.pixel-number-count {
+  animation: pixel-number-count 0.5s ease-out forwards;
+}
+
+.pixel-card-hover {
+  transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+}
+
+.pixel-card-hover:hover {
+  animation: pixel-card-hover 0.3s ease-out forwards;
+}
+
+.pixel-badge-blink {
+  animation: pixel-badge-blink 2s ease-in-out infinite;
+}
+
+.pixel-button-glow {
+  animation: pixel-button-glow 2s ease-in-out infinite;
+}
+
+/* Scroll-triggered animations */
+.pixel-on-scroll {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.pixel-on-scroll.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Staggered animation delays */
+.pixel-delay-1 { animation-delay: 0.1s; transition-delay: 0.1s; }
+.pixel-delay-2 { animation-delay: 0.2s; transition-delay: 0.2s; }
+.pixel-delay-3 { animation-delay: 0.3s; transition-delay: 0.3s; }
+.pixel-delay-4 { animation-delay: 0.4s; transition-delay: 0.4s; }
+.pixel-delay-5 { animation-delay: 0.5s; transition-delay: 0.5s; }
+.pixel-delay-6 { animation-delay: 0.6s; transition-delay: 0.6s; }

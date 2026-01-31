@@ -53,6 +53,16 @@ export default function Home() {
         status: 'open',
         visibility: eventVisibility,
       }
+
+      // #region agent log - Check if profile exists in DB
+      const { data: profileCheck, error: profileCheckError } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .single()
+      fetch('http://127.0.0.1:7252/ingest/dfa93302-39a4-440c-87d8-1ed057028eeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/home/page.tsx:handleCreateEvent:profileCheck',message:'Profile exists check',data:{profileExists:!!profileCheck,profileUserId:profileCheck?.user_id,profileCheckError:profileCheckError?.message,userId:user.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H10,H11'})}).catch(()=>{});
+      // #endregion
+
       // #region agent log
       fetch('http://127.0.0.1:7252/ingest/dfa93302-39a4-440c-87d8-1ed057028eeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/home/page.tsx:handleCreateEvent:beforeInsert',message:'About to insert event',data:{eventData,hostUserId:eventData.host_user_id,hostUserIdLength:eventData.host_user_id?.length,hostUserIdSegments:eventData.host_user_id?.split('-').map((s:string)=>s.length)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
       // #endregion
