@@ -496,14 +496,29 @@ export default function SessionPage() {
             }
           } else if (event === 'chat_message') {
             // Handle chat message broadcast
-            if (chatManagerRef.current && payload.chatId === currentChatId) {
+            const currentChat = chatManagerRef.current?.getCurrentChat()
+            if (chatManagerRef.current && currentChat && payload.chatId === currentChat.chatId) {
               const message: ChatMessage = {
                 id: payload.messageId,
                 userId: payload.userId,
                 content: payload.content,
                 createdAt: payload.createdAt,
               }
+              // Add to manager (updates internal state)
               chatManagerRef.current.addMessage(message)
+              // Also update React state - avoid duplicates (check by ID or by temp prefix)
+              if (mounted) {
+                setChatMessages((prev) => {
+                  // Skip if message already exists (from optimistic update)
+                  const exists = prev.some((m) => m.id === message.id)
+                  if (exists) return prev
+                  
+                  // If this is our own message, it was already added optimistically
+                  // The optimistic message has a temp-* ID, so just add the real one
+                  // (the optimistic ID was already replaced in onSendMessage)
+                  return [...prev, message]
+                })
+              }
             }
           }
         })
@@ -1044,10 +1059,29 @@ export default function SessionPage() {
         nearbyCount={nearbyForChat}
         onSendMessage={async (content) => {
           if (!currentChatId) return
+          
+          // Optimistically add message to UI immediately
+          const optimisticMessage: ChatMessage = {
+            id: `temp-${Date.now()}`,
+            userId: currentUserId,
+            content: content,
+            createdAt: new Date().toISOString(),
+          }
+          setChatMessages((prev) => [...prev, optimisticMessage])
+          
           try {
-            await sendProximityMessage(currentChatId, content)
-            // Message will be added via broadcast callback
+            const result = await sendProximityMessage(currentChatId, content)
+            // Update the temp message with the real ID
+            setChatMessages((prev) => 
+              prev.map((msg) => 
+                msg.id === optimisticMessage.id 
+                  ? { ...msg, id: result.message_id }
+                  : msg
+              )
+            )
           } catch (error: any) {
+            // Remove the optimistic message on error
+            setChatMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id))
             toast.error('Failed to send message: ' + (error.message || 'Unknown error'))
             console.error('Send message error:', error)
           }
