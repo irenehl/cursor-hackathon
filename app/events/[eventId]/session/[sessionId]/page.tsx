@@ -56,6 +56,10 @@ export default function SessionPage() {
       pvpManagerRef.current.setPendingChallenge(challenge)
       setNearbyPlayer(null) // Hide challenge button
     } catch (error: any) {
+      // #region agent log
+      const msg = error?.message || ''
+      if (typeof fetch !== 'undefined') fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'broadcast_realtime_rpc', location: 'session/page:handleChallenge:catch', message: 'createPvpDuel failed', data: { errMessage: msg, hasBroadcastRealtime: msg.includes('broadcast_realtime') }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+      // #endregion
       toast.error('Error al desafiar: ' + (error.message || 'Error desconocido'))
       console.error('Challenge error:', error)
     }
