@@ -113,6 +113,9 @@ export default function SessionPage() {
       }
 
       try {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H5', location: 'session/page:init:start', message: 'session init start', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         // Get current user and profile
         const {
           data: { user },
@@ -186,7 +189,13 @@ export default function SessionPage() {
         }
 
         const gameMap = new GameMap(worldContainer, mapBounds, punishmentCorner)
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:before loadMap', message: 'before gameMap.loadMap', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         await gameMap.loadMap() // Load without texture for now (will use fallback)
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:after loadMap', message: 'after gameMap.loadMap', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         gameMapRef.current = gameMap
 
         // Create player manager
@@ -202,6 +211,9 @@ export default function SessionPage() {
         const initialX = mapBounds.width / 2
         const initialY = mapBounds.height / 2
 
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:before createLocalPlayer', message: 'before createLocalPlayer', data: { avatarPath }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         const localPlayer = await playerManager.createLocalPlayer(
           {
             userId: user.id,
@@ -218,10 +230,18 @@ export default function SessionPage() {
           },
           avatarPath
         )
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:after createLocalPlayer', message: 'after createLocalPlayer', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
 
         // Load hat overlay for local player
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:before loadHatOverlay', message: 'before loadHatOverlay', data: { path: '/assets/overlays/punishment-hat.png' }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         await localPlayer.loadHatOverlay('/assets/overlays/punishment-hat.png')
-
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:after loadHatOverlay', message: 'after loadHatOverlay', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         localPlayerRef.current = localPlayer
 
         // Set up Realtime channel for presence and broadcasts
@@ -641,6 +661,9 @@ export default function SessionPage() {
           }
         }
       } catch (err: any) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:catch', message: 'session init catch', data: { errMessage: err?.message, errName: err?.name }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         console.error('Error initializing game:', err)
         setError(err.message || 'Failed to initialize game')
         setIsLoading(false)

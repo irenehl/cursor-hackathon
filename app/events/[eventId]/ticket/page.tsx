@@ -48,8 +48,15 @@ export default function TicketPage() {
       toast.success('Successfully joined event!')
       router.push(`/events/${eventId}/session/${result.session_id}`)
     } catch (error: any) {
-      console.error('Error joining event:', error?.message || error)
-      toast.error(error?.message || 'Failed to join event')
+      const msg = error?.message || ''
+      console.error('Error joining event:', msg || error)
+      if (msg.includes('Ticket already assigned to another user')) {
+        toast.error(
+          'Este código ya fue usado por otra cuenta. Si fuiste tú (por ejemplo en otro dispositivo o tras borrar datos), entra con la misma cuenta con la que te uniste la primera vez, o pide al organizador un nuevo código.'
+        )
+      } else {
+        toast.error(msg || 'Failed to join event')
+      }
     } finally {
       setLoading(false)
     }
@@ -74,7 +81,7 @@ export default function TicketPage() {
           Enter your ticket code to join
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-500 mb-8">
-          No ticket? Ask the host for a code.
+          No ticket? Ask the host for a code. Use the same account you’ll keep for the event (the code is tied to that account).
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
