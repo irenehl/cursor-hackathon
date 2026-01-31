@@ -41,6 +41,7 @@ export default function SessionPage() {
   const [currentUserId, setCurrentUserId] = useState<string>('')
   const [presenceState, setPresenceState] = useState<Map<string, any>>(new Map())
   const [showFightOverlay, setShowFightOverlay] = useState(false)
+  const [usersWithRaisedHands, setUsersWithRaisedHands] = useState<Set<string>>(new Set())
   const [currentChatId, setCurrentChatId] = useState<string | null>(null)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatMembers, setChatMembers] = useState<string[]>([])
@@ -760,6 +761,19 @@ export default function SessionPage() {
           }))
           setPlayersOnline(players)
 
+          // Fetch users with raised hands
+          supabase
+            .from('hand_queue')
+            .select('user_id')
+            .eq('event_id', eventId)
+            .eq('status', 'raised')
+            .then(({ data, error }) => {
+              if (!error && data && mounted) {
+                const raisedUserIds = new Set(data.map((h) => h.user_id))
+                setUsersWithRaisedHands(raisedUserIds)
+              }
+            })
+
           // Update chat members if in a chat
           if (currentChatId && chatManagerRef.current) {
             const chatManager = chatManagerRef.current
@@ -1004,8 +1018,11 @@ export default function SessionPage() {
             <div className="text-xs text-cream/70 italic">Just you here</div>
           ) : (
             playersOnline.map((player) => (
-              <div key={player.userId} className="text-xs text-cream font-mono">
-                • {player.displayName}
+              <div key={player.userId} className="text-xs text-cream font-mono flex items-center gap-1">
+                <span>• {player.displayName}</span>
+                {usersWithRaisedHands.has(player.userId) && (
+                  <span title="Hand raised">✋</span>
+                )}
               </div>
             ))
           )}

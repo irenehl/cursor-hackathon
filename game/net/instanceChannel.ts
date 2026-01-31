@@ -155,8 +155,11 @@ export class InstanceChannel {
       }
     )
 
-    // Subscribe to the channel with proper Promise handling
+    // Subscribe to the channel with proper Promise handling and retry
     return new Promise<void>((resolve, reject) => {
+      let retryCount = 0
+      const maxRetries = 3
+      
       // Add timeout for subscription
       const timeout = setTimeout(() => {
         if (!this.isUnsubscribing) {
@@ -164,25 +167,44 @@ export class InstanceChannel {
         }
       }, 10000)
 
-      this.channel!.subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          clearTimeout(timeout)
-          try {
-            // Track initial presence
-            await this.trackPresence(0, 0, 0)
-            resolve()
-          } catch (err) {
-            reject(err)
+      const attemptSubscribe = () => {
+        this.channel!.subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            clearTimeout(timeout)
+            try {
+              // Track initial presence
+              await this.trackPresence(0, 0, 0)
+              resolve()
+            } catch (err) {
+              reject(err)
+            }
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            clearTimeout(timeout)
+            // Only reject if we're not intentionally unsubscribing
+            if (!this.isUnsubscribing) {
+              reject(new Error(`Failed to subscribe to channel: ${status}`))
+            }
+          } else if (status === 'CLOSED') {
+            // CLOSED can happen during navigation or reconnection attempts
+            // Try to reconnect if we're not intentionally unsubscribing
+            if (!this.isUnsubscribing && retryCount < maxRetries) {
+              retryCount++
+              console.warn(`Channel closed, retrying (${retryCount}/${maxRetries})...`)
+              setTimeout(() => {
+                if (!this.isUnsubscribing && this.channel) {
+                  attemptSubscribe()
+                }
+              }, 1000 * retryCount) // Exponential backoff
+            } else if (!this.isUnsubscribing) {
+              clearTimeout(timeout)
+              reject(new Error(`Failed to subscribe to channel: ${status}`))
+            }
           }
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          clearTimeout(timeout)
-          // Only reject if we're not intentionally unsubscribing
-          if (!this.isUnsubscribing) {
-            reject(new Error(`Failed to subscribe to channel: ${status}`))
-          }
-        }
-        // Ignore other intermediate statuses like 'SUBSCRIBING'
-      })
+          // Ignore other intermediate statuses like 'SUBSCRIBING'
+        })
+      }
+
+      attemptSubscribe()
     })
   }
 
