@@ -111,7 +111,7 @@ export default function Home() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-border">
           <div>
             <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-text">
-              2D Events MVP
+              Pixel Meet
             </h1>
             {profile && (
               <p className="text-text-muted text-sm sm:text-base">

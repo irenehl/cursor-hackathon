@@ -1,4 +1,4 @@
-# 2D Events MVP
+# Pixel Meet
 
 A Next.js web app with embedded PixiJS 2D map for multiplayer events, powered by Supabase.
 

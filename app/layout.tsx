@@ -20,7 +20,7 @@ const pressStart2P = Press_Start_2P({
 })
 
 export const metadata: Metadata = {
-  title: '2D Events MVP',
+  title: 'Pixel Meet',
   description: 'Multiplayer 2D events platform',
 }
 
