@@ -1,22 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
 interface PvpUiProps {
   nearbyPlayer: { userId: string; displayName: string } | null
   onChallenge: (opponentId: string) => void
-  challengeReceived: { duelId: string; fromUserId: string; fromDisplayName: string } | null
-  onAcceptChallenge: (duelId: string) => void
-  onRejectChallenge: () => void
 }
 
 export function PvpUi({
   nearbyPlayer,
   onChallenge,
-  challengeReceived,
-  onAcceptChallenge,
-  onRejectChallenge,
 }: PvpUiProps) {
   const [isChallenging, setIsChallenging] = useState(false)
 
@@ -26,7 +20,7 @@ export function PvpUi({
     setIsChallenging(true)
     try {
       onChallenge(nearbyPlayer.userId)
-      toast.success(`Desafiando a ${nearbyPlayer.displayName}...`)
+      toast.success(`⚔️ ¡PvP corporativo contra ${nearbyPlayer.displayName}!`)
     } catch (error) {
       toast.error('Error al desafiar')
       console.error('Challenge error:', error)
@@ -35,20 +29,10 @@ export function PvpUi({
     }
   }
 
-  const handleAccept = () => {
-    if (!challengeReceived) return
-    onAcceptChallenge(challengeReceived.duelId)
-  }
-
-  const handleReject = () => {
-    onRejectChallenge()
-    toast.info('Desafío rechazado')
-  }
-
   return (
     <>
       {/* Challenge button when near a player - Retro game button style */}
-      {nearbyPlayer && !challengeReceived && (
+      {nearbyPlayer && (
         <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-20">
           <button
             onClick={handleChallenge}
@@ -59,53 +43,8 @@ export function PvpUi({
               boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
             }}
           >
-            {isChallenging ? '⚔️ Challenging...' : `⚔️ Challenge ${nearbyPlayer.displayName}`}
+            {isChallenging ? '⚔️ Peleando...' : `⚔️ Desafiar a ${nearbyPlayer.displayName}`}
           </button>
-        </div>
-      )}
-
-      {/* Accept challenge UI - Retro game modal */}
-      {challengeReceived && (
-        <div className="absolute inset-0 flex items-center justify-center z-30 bg-midnight/80 backdrop-blur-sm">
-          <div 
-            className="bg-surface-elevated border-4 border-accent p-8 rounded-lg shadow-2xl text-text max-w-md mx-4"
-            style={{
-              boxShadow: '0 8px 16px rgba(0, 0, 0, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.1)',
-              borderStyle: 'double',
-            }}
-          >
-            <div className="text-center mb-6">
-              <div className="text-4xl mb-3">⚔️</div>
-              <h3 className="text-2xl font-bold text-text mb-2">
-                Challenge Received!
-              </h3>
-              <p className="text-text-muted">
-                <strong className="text-text">{challengeReceived.fromDisplayName}</strong> challenges you to a duel
-              </p>
-            </div>
-            <div className="flex gap-4">
-              <button
-                onClick={handleAccept}
-                className="flex-1 px-6 py-3 bg-teal hover:opacity-90 text-text-inverse font-bold rounded-lg transition-all duration-150 active:scale-95 border-2 border-teal/50"
-                style={{
-                  textShadow: '1px 1px 0px rgba(0, 0, 0, 0.3)',
-                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-                }}
-              >
-                ✓ Accept
-              </button>
-              <button
-                onClick={handleReject}
-                className="flex-1 px-6 py-3 bg-accent hover:bg-accent-hover text-text-inverse font-bold rounded-lg transition-all duration-150 active:scale-95 border-2 border-accent/50"
-                style={{
-                  textShadow: '1px 1px 0px rgba(0, 0, 0, 0.3)',
-                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-                }}
-              >
-                ✕ Reject
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </>
