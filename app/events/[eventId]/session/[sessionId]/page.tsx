@@ -11,8 +11,9 @@ import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { InstanceChannel } from '@/game/net/instanceChannel'
 import { PvpManager } from '@/game/entities/pvpManager'
-import { createPvpDuel, acceptPvpAndResolve } from '@/lib/supabase/rpc'
+import { createPvpDuel, acceptPvpAndResolve, raiseHand } from '@/lib/supabase/rpc'
 import { PvpUi } from '@/components/game/pvp-ui'
+import { HostOverlay } from '@/components/game/host-overlay'
 
 export default function SessionPage() {
   const params = useParams()
@@ -30,9 +31,15 @@ export default function SessionPage() {
   const [error, setError] = useState<string | null>(null)
   const [nearbyPlayer, setNearbyPlayer] = useState<{ userId: string; displayName: string } | null>(null)
   const [challengeReceived, setChallengeReceived] = useState<{ duelId: string; fromUserId: string; fromDisplayName: string } | null>(null)
+  const [handState, setHandState] = useState<'idle' | 'queued' | 'granted'>('idle')
+  const [playersOnline, setPlayersOnline] = useState<Array<{ userId: string; displayName: string }>>([])
+  const [isHost, setIsHost] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string>('')
+  const [presenceState, setPresenceState] = useState<Map<string, any>>(new Map())
   const positionBroadcastIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const presenceUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const proximityCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const playersUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // PvP handlers (using useCallback to create stable references)
   const handleChallenge = useCallback(async (opponentId: string) => {
@@ -79,6 +86,23 @@ export default function SessionPage() {
     pvpManagerRef.current.clearChallenge()
   }, [])
 
+  const handleRaiseHand = useCallback(async () => {
+    if (handState !== 'idle') return
+
+    try {
+      const result = await raiseHand(eventId)
+      if (result.random_ignored) {
+        toast.error('No te vieron. Intenta de nuevo.')
+      } else {
+        setHandState('queued')
+        toast.success('Mano levantada - En cola')
+      }
+    } catch (error: any) {
+      toast.error('Error al levantar la mano: ' + (error.message || 'Error desconocido'))
+      console.error('Raise hand error:', error)
+    }
+  }, [eventId, handState])
+
   useEffect(() => {
     let mounted = true
 
@@ -98,6 +122,8 @@ export default function SessionPage() {
           return
         }
 
+        setCurrentUserId(user.id)
+
         const { data: profile } = await supabase
           .from('profiles')
           .select('display_name, avatar_id')
@@ -107,6 +133,17 @@ export default function SessionPage() {
         if (!profile) {
           setError('Profile not found. Please complete your profile first.')
           return
+        }
+
+        // Check if user is host
+        const { data: eventData } = await supabase
+          .from('events')
+          .select('host_user_id')
+          .eq('id', eventId)
+          .single()
+
+        if (eventData) {
+          setIsHost(eventData.host_user_id === user.id)
         }
 
         // Initialize PixiJS
@@ -275,6 +312,18 @@ export default function SessionPage() {
         instanceChannel.onServerBroadcast((event, payload) => {
           if (event === 'penalty') {
             handlePenalty(payload, user.id)
+          } else if (event === 'hand_granted') {
+            // Handle hand granted broadcast
+            if (payload.userId === user.id) {
+              setHandState('granted')
+              toast.success('Turno otorgado')
+              // Reset after 5 seconds
+              setTimeout(() => {
+                if (mounted) {
+                  setHandState('idle')
+                }
+              }, 5000)
+            }
           } else if (event === 'pvp_challenge') {
             // Handle incoming challenge
             const challenge = {
@@ -437,6 +486,19 @@ export default function SessionPage() {
           }
         }, 100) // Check proximity every 100ms
 
+        // Update players online list from presence
+        playersUpdateIntervalRef.current = setInterval(() => {
+          if (!mounted || !instanceChannelRef.current) return
+
+          const currentPresenceState = instanceChannelRef.current.getPresenceState()
+          setPresenceState(new Map(currentPresenceState))
+          const players = Array.from(currentPresenceState.values()).map((p) => ({
+            userId: p.userId,
+            displayName: p.displayName,
+          }))
+          setPlayersOnline(players)
+        }, 1000) // Update every second
+
         // Set up game loop
         const ticker = pixiApp.getTicker()
         ticker.add(() => {
@@ -568,6 +630,9 @@ export default function SessionPage() {
           if (proximityCheckIntervalRef.current) {
             clearInterval(proximityCheckIntervalRef.current)
           }
+          if (playersUpdateIntervalRef.current) {
+            clearInterval(playersUpdateIntervalRef.current)
+          }
           if (instanceChannelRef.current) {
             instanceChannelRef.current.unsubscribe()
           }
@@ -618,9 +683,55 @@ export default function SessionPage() {
         className="w-full h-full"
         style={{ display: 'block' }}
       />
-      <div className="absolute top-4 left-4 text-white bg-black bg-opacity-50 p-2 rounded text-sm">
+      <div className="absolute top-4 left-4 text-white bg-black bg-opacity-50 p-2 rounded text-sm space-y-1">
         <div>Use WASD or Arrow Keys to move</div>
+        <button
+          onClick={() => router.push('/events')}
+          className="text-xs underline hover:no-underline"
+        >
+          ← Leave Session
+        </button>
       </div>
+
+      {/* Players Online Overlay */}
+      <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white p-3 rounded-lg text-sm max-w-xs">
+        <div className="font-semibold mb-2">Players Online ({playersOnline.length})</div>
+        <div className="space-y-1 max-h-32 overflow-y-auto">
+          {playersOnline.map((player) => (
+            <div key={player.userId} className="text-xs">
+              {player.displayName}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Raise Hand Button */}
+      <div className="absolute bottom-4 left-4">
+        <button
+          onClick={handleRaiseHand}
+          disabled={handState !== 'idle'}
+          className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+            handState === 'idle'
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : handState === 'queued'
+              ? 'bg-yellow-600 text-white cursor-not-allowed'
+              : 'bg-green-600 text-white cursor-not-allowed'
+          }`}
+        >
+          {handState === 'idle' && '✋ Raise Hand'}
+          {handState === 'queued' && '⏳ En cola...'}
+          {handState === 'granted' && '✅ Turno otorgado'}
+        </button>
+      </div>
+
+      {isHost && (
+        <HostOverlay
+          eventId={eventId}
+          currentUserId={currentUserId}
+          participants={presenceState}
+        />
+      )}
+
       <PvpUi
         nearbyPlayer={nearbyPlayer}
         onChallenge={handleChallenge}

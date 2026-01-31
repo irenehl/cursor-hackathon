@@ -58,11 +58,23 @@ export default function TicketPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-8">
       <div className="max-w-md w-full">
+        <div className="mb-6">
+          <button
+            onClick={() => router.push('/events')}
+            className="text-sm text-gray-600 dark:text-gray-400 hover:underline mb-4 inline-block"
+          >
+            ← Back to events
+          </button>
+        </div>
+
         <h1 className="text-3xl font-bold mb-2">
           {event ? event.title : 'Join Event'}
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 mb-8">
+        <p className="text-gray-600 dark:text-gray-400 mb-2">
           Enter your ticket code to join
+        </p>
+        <p className="text-sm text-gray-500 dark:text-gray-500 mb-8">
+          No ticket? Ask the host for a code.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -93,15 +105,6 @@ export default function TicketPage() {
             {loading ? 'Joining...' : 'Join Event'}
           </button>
         </form>
-
-        <div className="mt-4">
-          <button
-            onClick={() => router.push('/events')}
-            className="text-sm text-gray-600 dark:text-gray-400 hover:underline"
-          >
-            ← Back to events
-          </button>
-        </div>
       </div>
     </main>
   )

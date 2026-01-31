@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { Toaster } from 'sonner'
 import { AuthProvider } from '@/lib/auth/auth-context'
+import { OnboardingGate } from '@/components/auth/onboarding-gate'
 
 export const metadata: Metadata = {
   title: '2D Events MVP',
@@ -15,9 +16,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="font-sans">
+      <body className="font-sans" suppressHydrationWarning>
         <AuthProvider>
-          {children}
+          <OnboardingGate>
+            {children}
+          </OnboardingGate>
         </AuthProvider>
         <Toaster />
       </body>
