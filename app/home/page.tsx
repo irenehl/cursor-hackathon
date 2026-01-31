@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
   X,
   Box,
-  Sun,
-  Moon,
   Hand,
   Check,
   Gavel,
@@ -18,7 +16,6 @@ import {
   Languages,
 } from "lucide-react";
 
-const THEME_KEY = "pixelmeet-landing-theme";
 const LOCALE_COOKIE = "NEXT_LOCALE";
 
 function setLocaleCookie(locale: "en" | "es") {
@@ -30,16 +27,6 @@ export default function Home() {
   const t = useTranslations("Home");
   const locale = useLocale() as "en" | "es";
   const router = useRouter();
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
-
-  useEffect(() => {
-    const stored = localStorage.getItem(THEME_KEY) as "light" | "dark" | null;
-    if (stored === "light" || stored === "dark") setTheme(stored);
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem(THEME_KEY, theme);
-  }, [theme]);
 
   const switchLocale = () => {
     const next = locale === "en" ? "es" : "en";
@@ -48,62 +35,47 @@ export default function Home() {
   };
 
   return (
-    <main
-      data-theme={theme}
-      className='min-h-screen bg-(--landing-bg) text-(--landing-text) antialiased selection:bg-(--landing-accent) selection:text-white transition-colors duration-200'
-    >
+    <main className='min-h-screen bg-background text-text antialiased selection:bg-accent selection:text-text-inverse transition-colors duration-200'>
       {/* Navbar */}
-      <nav className='w-full border-b border-(--landing-border) backdrop-blur-md fixed top-0 z-50 bg-(--landing-bg)/80'>
+      <nav className='w-full border-b border-border backdrop-blur-md fixed top-0 z-50 bg-background/80'>
         <div className='max-w-7xl mx-auto px-6 h-20 flex items-center justify-between'>
           <div className='flex items-center gap-2'>
-            <Gamepad2 className='w-6 h-6 text-(--landing-accent)' />
+            <Gamepad2 className='w-6 h-6 text-accent' />
             <span className='font-pixel text-xl tracking-tight'>PixelMeet</span>
           </div>
           <div className='flex items-center gap-4 md:gap-6'>
             <div className='hidden md:flex items-center gap-6 text-lg font-medium'>
               <a
                 href='#features'
-                className='hover:text-(--landing-text-heading) transition-colors'
+                className='hover:text-text transition-colors'
               >
                 {t("nav.features")}
               </a>
               <a
                 href='#pricing'
-                className='hover:text-(--landing-text-heading) transition-colors'
+                className='hover:text-text transition-colors'
               >
                 {t("nav.pricing")}
               </a>
               <a
                 href='#'
-                className='text-(--landing-text-muted) hover:text-(--landing-text) transition-colors'
+                className='text-text-muted hover:text-text transition-colors'
               >
                 {t("nav.login")}
               </a>
-              <button className='bg-(--landing-accent) text-white px-5 py-2 rounded-lg hover:opacity-90 transition-all shadow-lg shadow-(--landing-accent)/20 text-base font-medium'>
+              <button className='bg-accent hover:bg-accent-hover text-text-inverse px-5 py-2 rounded-lg transition-all shadow-lg shadow-accent/20 text-base font-medium'>
                 {t("nav.createEvent")}
               </button>
-            <button
-              type='button'
-              onClick={switchLocale}
-              className='p-2 rounded-lg border border-(--landing-border) hover:bg-(--landing-badge-bg) transition-colors flex items-center gap-1.5 text-sm font-medium'
-              aria-label={locale === "en" ? "Español" : "English"}
-              title={locale === "en" ? "Español" : "English"}
-            >
-              <Languages className='w-5 h-5' />
-              <span className='hidden sm:inline'>{locale === "en" ? "ES" : "EN"}</span>
-            </button>
-            <button
-              type='button'
-              onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-              className='p-2 rounded-lg border border-(--landing-border) hover:bg-(--landing-badge-bg) transition-colors'
-              aria-label={theme === "dark" ? t("themeLight") : t("themeDark")}
-            >
-              {theme === "dark" ? (
-                <Sun className='w-5 h-5' />
-              ) : (
-                <Moon className='w-5 h-5' />
-              )}
-            </button>
+              <button
+                type='button'
+                onClick={switchLocale}
+                className='p-2 rounded-lg border border-border hover:bg-surface transition-colors flex items-center gap-1.5 text-sm font-medium'
+                aria-label={locale === "en" ? "Español" : "English"}
+                title={locale === "en" ? "Español" : "English"}
+              >
+                <Languages className='w-5 h-5' />
+                <span className='hidden sm:inline'>{locale === "en" ? "ES" : "EN"}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -111,66 +83,66 @@ export default function Home() {
 
       {/* Hero Section */}
       <header className='pt-40 pb-24 md:pt-52 md:pb-32 px-6 max-w-5xl mx-auto text-center relative overflow-hidden'>
-        <div className='absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-(--landing-accent) opacity-10 blur-[120px] -z-10 rounded-full'></div>
+        <div className='absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-accent opacity-10 blur-[120px] -z-10 rounded-full'></div>
 
-        <div className='font-pixel inline-flex items-center gap-2 px-3 py-1 rounded-full border border-(--landing-badge-border) bg-(--landing-badge-bg) text-xs font-medium mb-8'>
-          <span className='flex h-2 w-2 rounded-full bg-(--landing-accent)'>
+        <div className='font-pixel inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-surface text-xs font-medium mb-8'>
+          <span className='flex h-2 w-2 rounded-full bg-accent'>
             {t("badge")}
           </span>
         </div>
 
-        <h1 className='font-pixel text-3xl md:text-5xl tracking-tight leading-[1.3] mb-8 text-transparent bg-clip-text bg-linear-to-b from-(--landing-hero-gradient-from) to-(--landing-hero-gradient-to)'>
+        <h1 className='font-pixel text-3xl md:text-5xl tracking-tight leading-[1.3] mb-8 text-text'>
           {t("heroTitle")}
         </h1>
 
-        <p className='text-xl md:text-2xl text-(--landing-text-muted) max-w-2xl mx-auto mb-12 leading-relaxed font-light'>
+        <p className='text-xl md:text-2xl text-text-muted max-w-2xl mx-auto mb-12 leading-relaxed font-light'>
           {t("heroSubtitle")}
         </p>
 
         <div className='flex flex-col md:flex-row items-center justify-center gap-4'>
-          <button className='w-full md:w-auto bg-(--landing-accent) text-white h-14 px-8 rounded-xl hover:opacity-90 transition-all font-medium text-lg flex items-center justify-center gap-2 shadow-lg shadow-(--landing-accent)/20'>
+          <button className='w-full md:w-auto bg-accent hover:bg-accent-hover text-text-inverse h-14 px-8 rounded-xl transition-all font-medium text-lg flex items-center justify-center gap-2 shadow-lg shadow-accent/20'>
             {t("ctaPrimary")}
             <ArrowRight className='w-5 h-5' />
           </button>
-          <button className='w-full md:w-auto bg-(--landing-badge-bg) text-(--landing-text) border border-(--landing-border) h-14 px-8 rounded-xl hover:bg-(--landing-bg-section) transition-all font-medium text-lg'>
+          <button className='w-full md:w-auto bg-surface border border-border-strong text-text h-14 px-8 rounded-xl hover:bg-surface-elevated transition-all font-medium text-lg'>
             {t("ctaSecondary")}
           </button>
         </div>
       </header>
 
       {/* Problem/Solution Section */}
-      <section className='py-24 bg-(--landing-bg-alt) border-y border-(--landing-border)'>
+      <section className='py-24 bg-surface border-y border-border'>
         <div className='max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center'>
           <div>
-            <h2 className='font-pixel text-2xl md:text-4xl tracking-tight mb-6 text-(--landing-text-heading)'>
+            <h2 className='font-pixel text-2xl md:text-4xl tracking-tight mb-6 text-text'>
               {t("problemTitle")}
             </h2>
-            <p className='text-xl text-(--landing-text-muted) mb-8 font-light leading-relaxed'>
+            <p className='text-xl text-text-muted mb-8 font-light leading-relaxed'>
               {t("problemText")}
             </p>
             <div className='space-y-4'>
               <div className='flex items-start gap-4'>
-                <div className='p-2 bg-(--landing-x-bg) rounded-lg mt-1'>
-                  <X className='w-5 h-5 text-red-500' />
+                <div className='p-2 bg-accent-secondary-muted rounded-lg mt-1'>
+                  <X className='w-5 h-5 text-accent' />
                 </div>
                 <div>
-                  <h4 className='text-lg font-medium text-(--landing-text-heading)'>
+                  <h4 className='text-lg font-medium text-text'>
                     {t("problemXTitle")}
                   </h4>
-                  <p className='text-base text-(--landing-text-muted-2)'>
+                  <p className='text-base text-text-muted'>
                     {t("problemXDesc")}
                   </p>
                 </div>
               </div>
               <div className='flex items-start gap-4'>
-                <div className='p-2 bg-(--landing-check-bg) rounded-lg mt-1'>
-                  <Check className='w-5 h-5 text-(--landing-icon-check)' />
+                <div className='p-2 bg-teal/20 rounded-lg mt-1'>
+                  <Check className='w-5 h-5 text-teal' />
                 </div>
                 <div>
-                  <h4 className='text-lg font-medium text-(--landing-text-heading)'>
+                  <h4 className='text-lg font-medium text-text'>
                     {t("problemCheckTitle")}
                   </h4>
-                  <p className='text-base text-(--landing-text-muted-2)'>
+                  <p className='text-base text-text-muted'>
                     {t("problemCheckDesc")}
                   </p>
                 </div>
@@ -178,20 +150,20 @@ export default function Home() {
             </div>
           </div>
           <div className='relative'>
-            <div className='absolute inset-0 bg-linear-to-tr from-(--landing-accent)/20 to-transparent rounded-2xl blur-2xl'></div>
-            <div className='relative bg-(--landing-bg-card) border border-(--landing-border) rounded-2xl p-8 aspect-square flex items-center justify-center overflow-hidden'>
+            <div className='absolute inset-0 bg-linear-to-tr from-accent/20 to-transparent rounded-2xl blur-2xl'></div>
+            <div className='relative bg-surface-elevated border border-border rounded-2xl p-8 aspect-square flex items-center justify-center overflow-hidden'>
               <div className='grid grid-cols-6 gap-2 opacity-50'>
-                <div className='w-8 h-8 bg-(--landing-check-bg) rounded-sm'></div>
-                <div className='w-8 h-8 bg-(--landing-text) rounded-sm animate-pulse'></div>
-                <div className='w-8 h-8 bg-(--landing-check-bg) rounded-sm'></div>
-                <div className='w-8 h-8 bg-(--landing-accent) rounded-sm'></div>
+                <div className='w-8 h-8 bg-teal/30 rounded-sm'></div>
+                <div className='w-8 h-8 bg-text rounded-sm animate-pulse'></div>
+                <div className='w-8 h-8 bg-teal/30 rounded-sm'></div>
+                <div className='w-8 h-8 bg-accent rounded-sm'></div>
               </div>
               <div className='absolute text-center'>
                 <Ghost
-                  className='w-24 h-24 text-(--landing-icon-ghost) mx-auto mb-4'
+                  className='w-24 h-24 text-text-muted mx-auto mb-4'
                   strokeWidth={1}
                 />
-                <p className='font-pixel text-xs text-(--landing-accent)'>
+                <p className='font-pixel text-xs text-accent'>
                   {t("problemVisualLabel")}
                 </p>
               </div>
@@ -203,59 +175,59 @@ export default function Home() {
       {/* Features Section */}
       <section id='features' className='py-32 max-w-7xl mx-auto px-6'>
         <div className='text-center mb-24'>
-          <h2 className='font-pixel text-3xl md:text-4xl tracking-tight mb-6 text-(--landing-text-heading)'>
+          <h2 className='font-pixel text-3xl md:text-4xl tracking-tight mb-6 text-text'>
             {t("featuresTitle")}
           </h2>
-          <p className='text-xl text-(--landing-text-muted) max-w-2xl mx-auto'>
+          <p className='text-xl text-text-muted max-w-2xl mx-auto'>
             {t("featuresSubtitle")}
           </p>
         </div>
 
         <div className='grid md:grid-cols-2 gap-8'>
-          <div className='group p-8 rounded-2xl bg-(--landing-bg-feature) border border-(--landing-border) hover:border-(--landing-accent)/50 transition-all duration-300'>
-            <div className='w-12 h-12 bg-(--landing-bg-card) rounded-lg flex items-center justify-center mb-6 border border-(--landing-border) group-hover:border-(--landing-accent)'>
-              <Box className='w-6 h-6 text-(--landing-icon-check)' />
+          <div className='group p-8 rounded-2xl bg-surface border border-border hover:border-accent/50 transition-all duration-300'>
+            <div className='w-12 h-12 bg-surface-elevated rounded-lg flex items-center justify-center mb-6 border border-border group-hover:border-accent'>
+              <Box className='w-6 h-6 text-teal' />
             </div>
-            <h3 className='font-pixel text-lg mb-3 tracking-tight'>
+            <h3 className='font-pixel text-lg mb-3 tracking-tight text-text'>
               {t("feature1Title")}
             </h3>
-            <p className='text-lg text-(--landing-text-muted) leading-relaxed'>
+            <p className='text-lg text-text-muted leading-relaxed'>
               {t("feature1Desc")}
             </p>
           </div>
 
-          <div className='group p-8 rounded-2xl bg-(--landing-bg-feature) border border-(--landing-border) hover:border-(--landing-accent)/50 transition-all duration-300'>
-            <div className='w-12 h-12 bg-(--landing-bg-card) rounded-lg flex items-center justify-center mb-6 border border-(--landing-border) group-hover:border-(--landing-accent)'>
-              <Hand className='w-6 h-6 text-(--landing-icon-check)' />
+          <div className='group p-8 rounded-2xl bg-surface border border-border hover:border-accent/50 transition-all duration-300'>
+            <div className='w-12 h-12 bg-surface-elevated rounded-lg flex items-center justify-center mb-6 border border-border group-hover:border-accent'>
+              <Hand className='w-6 h-6 text-teal' />
             </div>
-            <h3 className='font-pixel text-lg mb-3 tracking-tight'>
+            <h3 className='font-pixel text-lg mb-3 tracking-tight text-text'>
               {t("feature2Title")}
             </h3>
-            <p className='text-lg text-(--landing-text-muted) leading-relaxed'>
+            <p className='text-lg text-text-muted leading-relaxed'>
               {t("feature2Desc")}
             </p>
           </div>
 
-          <div className='group p-8 rounded-2xl bg-(--landing-bg-feature) border border-(--landing-border) hover:border-(--landing-accent)/50 transition-all duration-300'>
-            <div className='w-12 h-12 bg-(--landing-bg-card) rounded-lg flex items-center justify-center mb-6 border border-(--landing-border) group-hover:border-(--landing-accent)'>
-              <Swords className='w-6 h-6 text-(--landing-accent)' />
+          <div className='group p-8 rounded-2xl bg-surface border border-border hover:border-accent/50 transition-all duration-300'>
+            <div className='w-12 h-12 bg-surface-elevated rounded-lg flex items-center justify-center mb-6 border border-border group-hover:border-accent'>
+              <Swords className='w-6 h-6 text-accent' />
             </div>
-            <h3 className='font-pixel text-lg mb-3 tracking-tight'>
+            <h3 className='font-pixel text-lg mb-3 tracking-tight text-text'>
               {t("feature3Title")}
             </h3>
-            <p className='text-lg text-(--landing-text-muted) leading-relaxed'>
+            <p className='text-lg text-text-muted leading-relaxed'>
               {t("feature3Desc")}
             </p>
           </div>
 
-          <div className='group p-8 rounded-2xl bg-(--landing-bg-feature) border border-(--landing-border) hover:border-(--landing-accent)/50 transition-all duration-300'>
-            <div className='w-12 h-12 bg-(--landing-bg-card) rounded-lg flex items-center justify-center mb-6 border border-(--landing-border) group-hover:border-(--landing-accent)'>
-              <Gavel className='w-6 h-6 text-(--landing-icon-check)' />
+          <div className='group p-8 rounded-2xl bg-surface border border-border hover:border-accent/50 transition-all duration-300'>
+            <div className='w-12 h-12 bg-surface-elevated rounded-lg flex items-center justify-center mb-6 border border-border group-hover:border-accent'>
+              <Gavel className='w-6 h-6 text-teal' />
             </div>
-            <h3 className='font-pixel text-lg mb-3 tracking-tight'>
+            <h3 className='font-pixel text-lg mb-3 tracking-tight text-text'>
               {t("feature4Title")}
             </h3>
-            <p className='text-lg text-(--landing-text-muted) leading-relaxed'>
+            <p className='text-lg text-text-muted leading-relaxed'>
               {t("feature4Desc")}
             </p>
           </div>
@@ -263,25 +235,25 @@ export default function Home() {
       </section>
 
       {/* How it Works */}
-      <section className='py-24 bg-(--landing-bg-section) border-y border-(--landing-border)'>
+      <section className='py-24 bg-surface border-y border-border'>
         <div className='max-w-4xl mx-auto px-6'>
-          <h2 className='font-pixel text-2xl md:text-3xl tracking-tight text-center mb-16 text-(--landing-text-heading)'>
+          <h2 className='font-pixel text-2xl md:text-3xl tracking-tight text-center mb-16 text-text'>
             {t("howItWorksTitle")}
           </h2>
 
-          <div className='relative border-l border-(--landing-border-strong) ml-6 md:ml-0 md:pl-0 space-y-12'>
+          <div className='relative border-l border-border-strong ml-6 md:ml-0 md:pl-0 space-y-12'>
             <div className='relative md:grid md:grid-cols-5 md:gap-8 items-start'>
               <div className='hidden md:block col-span-1 text-right pt-1'>
-                <span className='text-4xl font-bold text-(--landing-step-num)'>
+                <span className='text-4xl font-bold text-text-muted/30'>
                   01
                 </span>
               </div>
               <div className='absolute -left-[5px] md:static md:col-span-4 pl-8 md:pl-0'>
-                <div className='absolute -left-[5px] top-2 w-2.5 h-2.5 rounded-full bg-(--landing-accent) md:hidden'></div>
-                <h3 className='font-pixel text-base text-(--landing-text-heading) mb-2'>
+                <div className='absolute -left-[5px] top-2 w-2.5 h-2.5 rounded-full bg-accent md:hidden'></div>
+                <h3 className='font-pixel text-base text-text mb-2'>
                   {t("step1Title")}
                 </h3>
-                <p className='text-lg text-(--landing-text-muted)'>
+                <p className='text-lg text-text-muted'>
                   {t("step1Desc")}
                 </p>
               </div>
@@ -289,16 +261,16 @@ export default function Home() {
 
             <div className='relative md:grid md:grid-cols-5 md:gap-8 items-start'>
               <div className='hidden md:block col-span-1 text-right pt-1'>
-                <span className='text-4xl font-bold text-(--landing-step-num)'>
+                <span className='text-4xl font-bold text-text-muted/30'>
                   02
                 </span>
               </div>
               <div className='absolute -left-[5px] md:static md:col-span-4 pl-8 md:pl-0'>
-                <div className='absolute -left-[5px] top-2 w-2.5 h-2.5 rounded-full bg-(--landing-step-dot) md:hidden'></div>
-                <h3 className='font-pixel text-base text-(--landing-text-heading) mb-2'>
+                <div className='absolute -left-[5px] top-2 w-2.5 h-2.5 rounded-full bg-cream md:hidden'></div>
+                <h3 className='font-pixel text-base text-text mb-2'>
                   {t("step2Title")}
                 </h3>
-                <p className='text-lg text-(--landing-text-muted)'>
+                <p className='text-lg text-text-muted'>
                   {t("step2Desc")}
                 </p>
               </div>
@@ -306,16 +278,16 @@ export default function Home() {
 
             <div className='relative md:grid md:grid-cols-5 md:gap-8 items-start'>
               <div className='hidden md:block col-span-1 text-right pt-1'>
-                <span className='text-4xl font-bold text-(--landing-step-num)'>
+                <span className='text-4xl font-bold text-text-muted/30'>
                   03
                 </span>
               </div>
               <div className='absolute -left-[5px] md:static md:col-span-4 pl-8 md:pl-0'>
-                <div className='absolute -left-[5px] top-2 w-2.5 h-2.5 rounded-full bg-(--landing-step-dot) md:hidden'></div>
-                <h3 className='font-pixel text-base text-(--landing-text-heading) mb-2'>
+                <div className='absolute -left-[5px] top-2 w-2.5 h-2.5 rounded-full bg-cream md:hidden'></div>
+                <h3 className='font-pixel text-base text-text mb-2'>
                   {t("step3Title")}
                 </h3>
-                <p className='text-lg text-(--landing-text-muted)'>
+                <p className='text-lg text-text-muted'>
                   {t("step3Desc")}
                 </p>
               </div>
@@ -327,112 +299,112 @@ export default function Home() {
       {/* Pricing Section */}
       <section id='pricing' className='py-32 max-w-7xl mx-auto px-6'>
         <div className='text-center mb-20'>
-          <h2 className='font-pixel text-3xl md:text-4xl tracking-tight mb-6 text-(--landing-text-heading)'>
+          <h2 className='font-pixel text-3xl md:text-4xl tracking-tight mb-6 text-text'>
             {t("pricingTitle")}
           </h2>
-          <p className='text-xl text-(--landing-text-muted)'>
+          <p className='text-xl text-text-muted'>
             {t("pricingSubtitle")}
           </p>
         </div>
 
         <div className='grid md:grid-cols-3 gap-8 items-start'>
-          <div className='p-8 rounded-2xl border border-(--landing-border) bg-(--landing-bg-card) relative'>
-            <h3 className='font-pixel text-base mb-2 text-(--landing-text)'>
+          <div className='p-8 rounded-2xl border border-border bg-surface-elevated relative'>
+            <h3 className='font-pixel text-base mb-2 text-text'>
               {t("tierFreeName")}
             </h3>
-            <div className='text-4xl font-semibold tracking-tight mb-6 text-(--landing-text-heading)'>
+            <div className='text-4xl font-semibold tracking-tight mb-6 text-text'>
               {t("tierFreePrice")}{" "}
-              <span className='text-base font-normal text-(--landing-text-muted-2)'>
+              <span className='text-base font-normal text-text-muted'>
                 {t("tierFreePeriod")}
               </span>
             </div>
-            <ul className='space-y-4 text-(--landing-text-muted) mb-8 text-lg'>
+            <ul className='space-y-4 text-text-muted mb-8 text-lg'>
               <li className='flex gap-3'>
-                <Check className='w-5 h-5 text-(--landing-icon-check) shrink-0' />
+                <Check className='w-5 h-5 text-teal shrink-0' />
                 {t("tierFree1")}
               </li>
               <li className='flex gap-3'>
-                <Check className='w-5 h-5 text-(--landing-icon-check) shrink-0' />
+                <Check className='w-5 h-5 text-teal shrink-0' />
                 {t("tierFree2")}
               </li>
               <li className='flex gap-3'>
-                <Check className='w-5 h-5 text-(--landing-icon-check) shrink-0' />
+                <Check className='w-5 h-5 text-teal shrink-0' />
                 {t("tierFree3")}
               </li>
             </ul>
-            <button className='w-full py-3 rounded-lg border border-(--landing-border-strong) hover:bg-(--landing-badge-bg) transition-colors font-medium text-(--landing-text)'>
+            <button className='w-full py-3 rounded-lg border border-border-strong hover:bg-surface transition-colors font-medium text-text'>
               {t("tierFreeCta")}
             </button>
           </div>
 
-          <div className='p-8 rounded-2xl bg-(--landing-price-basic-bg) border border-(--landing-price-basic-bg) shadow-xl relative transform md:-translate-y-4'>
-            <div className='absolute top-0 right-0 bg-(--landing-accent) text-white text-xs font-semibold px-3 py-1 rounded-bl-lg rounded-tr-lg uppercase tracking-wide'>
+          <div className='p-8 rounded-2xl bg-teal border border-teal shadow-xl relative transform md:-translate-y-4'>
+            <div className='absolute top-0 right-0 bg-accent text-text-inverse text-xs font-semibold px-3 py-1 rounded-bl-lg rounded-tr-lg uppercase tracking-wide'>
               {t("tierBasicBadge")}
             </div>
-            <h3 className='font-pixel text-base mb-2 text-white'>
+            <h3 className='font-pixel text-base mb-2 text-text-inverse'>
               {t("tierBasicName")}
             </h3>
-            <div className='text-4xl font-semibold tracking-tight mb-6 text-white'>
+            <div className='text-4xl font-semibold tracking-tight mb-6 text-text-inverse'>
               {t("tierBasicPrice")}{" "}
-              <span className='text-base font-normal text-white/70'>
+              <span className='text-base font-normal text-text-inverse/70'>
                 {t("tierBasicPeriod")}
               </span>
             </div>
-            <ul className='space-y-4 text-white/90 mb-8 text-lg'>
+            <ul className='space-y-4 text-text-inverse/90 mb-8 text-lg'>
               <li className='flex gap-3'>
-                <Check className='w-5 h-5 text-(--landing-accent) shrink-0' />
+                <Check className='w-5 h-5 text-cream shrink-0' />
                 {t("tierBasic1")}
               </li>
               <li className='flex gap-3'>
-                <Check className='w-5 h-5 text-(--landing-accent) shrink-0' />
+                <Check className='w-5 h-5 text-cream shrink-0' />
                 {t("tierBasic2")}
               </li>
               <li className='flex gap-3'>
-                <Check className='w-5 h-5 text-(--landing-accent) shrink-0' />
+                <Check className='w-5 h-5 text-cream shrink-0' />
                 {t("tierBasic3")}
               </li>
               <li className='flex gap-3'>
-                <Check className='w-5 h-5 text-(--landing-accent) shrink-0' />
+                <Check className='w-5 h-5 text-cream shrink-0' />
                 {t("tierBasic4")}
               </li>
             </ul>
-            <button className='w-full py-3 rounded-lg bg-(--landing-accent) text-white hover:opacity-90 transition-colors font-medium shadow-lg'>
+            <button className='w-full py-3 rounded-lg bg-accent text-text-inverse hover:bg-accent-hover transition-colors font-medium shadow-lg'>
               {t("tierBasicCta")}
             </button>
           </div>
 
-          <div className='p-8 rounded-2xl bg-(--landing-price-pro-bg) border border-(--landing-price-pro-bg)/80 relative overflow-hidden'>
-            <div className='absolute top-0 left-0 w-full h-1 bg-linear-to-r from-(--landing-accent) to-(--landing-price-pro-btn-bg)'></div>
-            <h3 className='font-pixel text-base mb-2 text-(--landing-price-pro-btn-bg)'>
+          <div className='p-8 rounded-2xl bg-plum border border-plum/80 relative overflow-hidden'>
+            <div className='absolute top-0 left-0 w-full h-1 bg-linear-to-r from-accent to-cream'></div>
+            <h3 className='font-pixel text-base mb-2 text-cream'>
               {t("tierProName")}
             </h3>
-            <div className='text-4xl font-semibold tracking-tight mb-6 text-(--landing-price-pro-btn-bg)'>
+            <div className='text-4xl font-semibold tracking-tight mb-6 text-cream'>
               {t("tierProPrice")}{" "}
-              <span className='text-base font-normal text-(--landing-price-pro-btn-bg)/70'>
+              <span className='text-base font-normal text-cream/70'>
                 {t("tierProPeriod")}
               </span>
             </div>
-            <ul className='space-y-4 text-(--landing-price-pro-btn-bg)/90 mb-8 text-lg'>
+            <ul className='space-y-4 text-cream/90 mb-8 text-lg'>
               <li className='flex gap-3'>
-                <Check className='w-5 h-5 text-(--landing-price-pro-btn-bg) shrink-0' />
+                <Check className='w-5 h-5 text-cream shrink-0' />
                 {t("tierPro1")}
               </li>
               <li className='flex gap-3'>
-                <Check className='w-5 h-5 text-(--landing-price-pro-btn-bg) shrink-0' />
-                <span className='font-semibold text-white'>
+                <Check className='w-5 h-5 text-cream shrink-0' />
+                <span className='font-semibold text-text-inverse'>
                   {t("tierPro2")}
                 </span>
               </li>
               <li className='flex gap-3'>
-                <Check className='w-5 h-5 text-(--landing-price-pro-btn-bg) shrink-0' />
+                <Check className='w-5 h-5 text-cream shrink-0' />
                 {t("tierPro3")}
               </li>
               <li className='flex gap-3'>
-                <Check className='w-5 h-5 text-(--landing-price-pro-btn-bg) shrink-0' />
+                <Check className='w-5 h-5 text-cream shrink-0' />
                 {t("tierPro4")}
               </li>
             </ul>
-            <button className='w-full py-3 rounded-lg bg-(--landing-price-pro-btn-bg) text-(--landing-price-pro-btn-text) hover:bg-white transition-colors font-medium'>
+            <button className='w-full py-3 rounded-lg bg-cream text-plum hover:bg-white transition-colors font-medium'>
               {t("tierProCta")}
             </button>
           </div>
@@ -440,12 +412,12 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className='py-12 border-t border-(--landing-border) text-center'>
+      <footer className='py-12 border-t border-border text-center'>
         <div className='flex items-center justify-center gap-2 mb-6'>
-          <Gamepad2 className='w-5 h-5 text-(--landing-accent)' />
+          <Gamepad2 className='w-5 h-5 text-accent' />
           <span className='font-pixel text-base tracking-tight'>PixelMeet</span>
         </div>
-        <p className='text-(--landing-text-muted-2) text-sm'>
+        <p className='text-text-muted text-sm'>
           {t("footerCopyright", {
             year: new Date().getFullYear(),
           })}

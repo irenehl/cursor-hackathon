@@ -38,9 +38,15 @@ export class Player {
   }
 
   async loadAvatar(avatarPath: string): Promise<void> {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'player.ts:loadAvatar:entry', message: 'loadAvatar start', data: { avatarPath }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+    // #endregion
     try {
       this.avatarTexture = await Texture.fromURL(avatarPath)
-    } catch (error) {
+    } catch (error: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'player.ts:loadAvatar:catch', message: 'loadAvatar failed', data: { avatarPath, errMessage: error?.message }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+      // #endregion
       console.warn(`Failed to load avatar from ${avatarPath}, using fallback`, error)
       // Create a simple colored rectangle as fallback
       const fallback = new Graphics()
@@ -93,6 +99,9 @@ export class Player {
   }
 
   async loadHatOverlay(hatPath: string): Promise<void> {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'player.ts:loadHatOverlay:entry', message: 'loadHatOverlay start', data: { hatPath }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+    // #endregion
     try {
       const hatTexture = await Texture.fromURL(hatPath)
       this.hatOverlay = new Sprite(hatTexture)
@@ -101,7 +110,10 @@ export class Player {
       this.hatOverlay.anchor.set(0.5, 0.5)
       this.hatOverlay.visible = false
       this.container.addChild(this.hatOverlay)
-    } catch (error) {
+    } catch (error: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'player.ts:loadHatOverlay:catch', message: 'loadHatOverlay failed', data: { hatPath, errMessage: error?.message }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+      // #endregion
       console.warn(`Failed to load hat overlay from ${hatPath}, using fallback`, error)
       // Create a simple red rectangle as fallback hat
       const fallbackHat = new Graphics()

@@ -5,6 +5,7 @@ import { Toaster } from 'sonner'
 import { AuthProvider } from '@/lib/auth/auth-context'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
+import { OnboardingGate } from '@/components/auth/onboarding-gate'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -32,10 +33,12 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} className={`${inter.variable} ${pressStart2P.variable}`}>
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         <NextIntlClientProvider messages={messages} locale={locale}>
           <AuthProvider>
-            {children}
+            <OnboardingGate>
+              {children}
+            </OnboardingGate>
           </AuthProvider>
         </NextIntlClientProvider>
         <Toaster />

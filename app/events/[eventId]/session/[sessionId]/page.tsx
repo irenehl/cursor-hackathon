@@ -11,15 +11,16 @@ import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { InstanceChannel } from '@/game/net/instanceChannel'
 import { PvpManager } from '@/game/entities/pvpManager'
-import { createPvpDuel, acceptPvpAndResolve } from '@/lib/supabase/rpc'
+import { createPvpDuel, acceptPvpAndResolve, raiseHand } from '@/lib/supabase/rpc'
 import { PvpUi } from '@/components/game/pvp-ui'
+import { HostOverlay } from '@/components/game/host-overlay'
 
 export default function SessionPage() {
   const params = useParams()
   const router = useRouter()
   const eventId = params.eventId as string
   const sessionId = params.sessionId as string
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const pixiAppRef = useRef<PixiAppManager | null>(null)
   const gameMapRef = useRef<GameMap | null>(null)
   const playerManagerRef = useRef<PlayerManager | null>(null)
@@ -30,9 +31,15 @@ export default function SessionPage() {
   const [error, setError] = useState<string | null>(null)
   const [nearbyPlayer, setNearbyPlayer] = useState<{ userId: string; displayName: string } | null>(null)
   const [challengeReceived, setChallengeReceived] = useState<{ duelId: string; fromUserId: string; fromDisplayName: string } | null>(null)
+  const [handState, setHandState] = useState<'idle' | 'queued' | 'granted'>('idle')
+  const [playersOnline, setPlayersOnline] = useState<Array<{ userId: string; displayName: string }>>([])
+  const [isHost, setIsHost] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string>('')
+  const [presenceState, setPresenceState] = useState<Map<string, any>>(new Map())
   const positionBroadcastIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const presenceUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const proximityCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const playersUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // PvP handlers (using useCallback to create stable references)
   const handleChallenge = useCallback(async (opponentId: string) => {
@@ -79,16 +86,36 @@ export default function SessionPage() {
     pvpManagerRef.current.clearChallenge()
   }, [])
 
+  const handleRaiseHand = useCallback(async () => {
+    if (handState !== 'idle') return
+
+    try {
+      const result = await raiseHand(eventId)
+      if (result.random_ignored) {
+        toast.error('No te vieron. Intenta de nuevo.')
+      } else {
+        setHandState('queued')
+        toast.success('Mano levantada - En cola')
+      }
+    } catch (error: any) {
+      toast.error('Error al levantar la mano: ' + (error.message || 'Error desconocido'))
+      console.error('Raise hand error:', error)
+    }
+  }, [eventId, handState])
+
   useEffect(() => {
     let mounted = true
 
     async function initializeGame() {
-      if (!canvasRef.current) {
-        setError('Canvas element not found')
+      if (!containerRef.current) {
+        setError('Container element not found')
         return
       }
 
       try {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H5', location: 'session/page:init:start', message: 'session init start', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         // Get current user and profile
         const {
           data: { user },
@@ -97,6 +124,8 @@ export default function SessionPage() {
           router.push('/events')
           return
         }
+
+        setCurrentUserId(user.id)
 
         const { data: profile } = await supabase
           .from('profiles')
@@ -109,7 +138,18 @@ export default function SessionPage() {
           return
         }
 
-        // Initialize PixiJS
+        // Check if user is host
+        const { data: eventData } = await supabase
+          .from('events')
+          .select('host_user_id')
+          .eq('id', eventId)
+          .single()
+
+        if (eventData) {
+          setIsHost(eventData.host_user_id === user.id)
+        }
+
+        // Initialize PixiJS with the container element
         const pixiApp = new PixiAppManager()
         const app = await pixiApp.initialize(
           {
@@ -118,7 +158,7 @@ export default function SessionPage() {
             backgroundColor: 0x1a1a1a,
             antialias: true,
           },
-          canvasRef.current
+          containerRef.current
         )
 
         if (!mounted) {
@@ -149,7 +189,13 @@ export default function SessionPage() {
         }
 
         const gameMap = new GameMap(worldContainer, mapBounds, punishmentCorner)
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:before loadMap', message: 'before gameMap.loadMap', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         await gameMap.loadMap() // Load without texture for now (will use fallback)
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:after loadMap', message: 'after gameMap.loadMap', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         gameMapRef.current = gameMap
 
         // Create player manager
@@ -165,6 +211,9 @@ export default function SessionPage() {
         const initialX = mapBounds.width / 2
         const initialY = mapBounds.height / 2
 
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:before createLocalPlayer', message: 'before createLocalPlayer', data: { avatarPath }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         const localPlayer = await playerManager.createLocalPlayer(
           {
             userId: user.id,
@@ -181,10 +230,18 @@ export default function SessionPage() {
           },
           avatarPath
         )
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:after createLocalPlayer', message: 'after createLocalPlayer', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
 
         // Load hat overlay for local player
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:before loadHatOverlay', message: 'before loadHatOverlay', data: { path: '/assets/overlays/punishment-hat.png' }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         await localPlayer.loadHatOverlay('/assets/overlays/punishment-hat.png')
-
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:after loadHatOverlay', message: 'after loadHatOverlay', data: {}, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         localPlayerRef.current = localPlayer
 
         // Set up Realtime channel for presence and broadcasts
@@ -275,6 +332,18 @@ export default function SessionPage() {
         instanceChannel.onServerBroadcast((event, payload) => {
           if (event === 'penalty') {
             handlePenalty(payload, user.id)
+          } else if (event === 'hand_granted') {
+            // Handle hand granted broadcast
+            if (payload.userId === user.id) {
+              setHandState('granted')
+              toast.success('Turno otorgado')
+              // Reset after 5 seconds
+              setTimeout(() => {
+                if (mounted) {
+                  setHandState('idle')
+                }
+              }, 5000)
+            }
           } else if (event === 'pvp_challenge') {
             // Handle incoming challenge
             const challenge = {
@@ -437,6 +506,19 @@ export default function SessionPage() {
           }
         }, 100) // Check proximity every 100ms
 
+        // Update players online list from presence
+        playersUpdateIntervalRef.current = setInterval(() => {
+          if (!mounted || !instanceChannelRef.current) return
+
+          const currentPresenceState = instanceChannelRef.current.getPresenceState()
+          setPresenceState(new Map(currentPresenceState))
+          const players = Array.from(currentPresenceState.values()).map((p) => ({
+            userId: p.userId,
+            displayName: p.displayName,
+          }))
+          setPlayersOnline(players)
+        }, 1000) // Update every second
+
         // Set up game loop
         const ticker = pixiApp.getTicker()
         ticker.add(() => {
@@ -568,6 +650,9 @@ export default function SessionPage() {
           if (proximityCheckIntervalRef.current) {
             clearInterval(proximityCheckIntervalRef.current)
           }
+          if (playersUpdateIntervalRef.current) {
+            clearInterval(playersUpdateIntervalRef.current)
+          }
           if (instanceChannelRef.current) {
             instanceChannelRef.current.unsubscribe()
           }
@@ -576,6 +661,9 @@ export default function SessionPage() {
           }
         }
       } catch (err: any) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0c79b8cd-d103-4925-a9ae-e8a96ba4f4c7', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hypothesisId: 'H3', location: 'session/page:catch', message: 'session init catch', data: { errMessage: err?.message, errName: err?.name }, timestamp: Date.now(), sessionId: 'debug-session' }) }).catch(() => {})
+        // #endregion
         console.error('Error initializing game:', err)
         setError(err.message || 'Failed to initialize game')
         setIsLoading(false)
@@ -613,14 +701,60 @@ export default function SessionPage() {
           <div className="text-white text-xl">Loading game...</div>
         </div>
       )}
-      <canvas
-        ref={canvasRef}
+      <div
+        ref={containerRef}
         className="w-full h-full"
         style={{ display: 'block' }}
       />
-      <div className="absolute top-4 left-4 text-white bg-black bg-opacity-50 p-2 rounded text-sm">
+      <div className="absolute top-4 left-4 text-white bg-black bg-opacity-50 p-2 rounded text-sm space-y-1">
         <div>Use WASD or Arrow Keys to move</div>
+        <button
+          onClick={() => router.push('/events')}
+          className="text-xs underline hover:no-underline"
+        >
+          ← Leave Session
+        </button>
       </div>
+
+      {/* Players Online Overlay */}
+      <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white p-3 rounded-lg text-sm max-w-xs">
+        <div className="font-semibold mb-2">Players Online ({playersOnline.length})</div>
+        <div className="space-y-1 max-h-32 overflow-y-auto">
+          {playersOnline.map((player) => (
+            <div key={player.userId} className="text-xs">
+              {player.displayName}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Raise Hand Button */}
+      <div className="absolute bottom-4 left-4">
+        <button
+          onClick={handleRaiseHand}
+          disabled={handState !== 'idle'}
+          className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+            handState === 'idle'
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : handState === 'queued'
+              ? 'bg-yellow-600 text-white cursor-not-allowed'
+              : 'bg-green-600 text-white cursor-not-allowed'
+          }`}
+        >
+          {handState === 'idle' && '✋ Raise Hand'}
+          {handState === 'queued' && '⏳ En cola...'}
+          {handState === 'granted' && '✅ Turno otorgado'}
+        </button>
+      </div>
+
+      {isHost && (
+        <HostOverlay
+          eventId={eventId}
+          currentUserId={currentUserId}
+          participants={presenceState}
+        />
+      )}
+
       <PvpUi
         nearbyPlayer={nearbyPlayer}
         onChallenge={handleChallenge}

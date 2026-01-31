@@ -17,20 +17,14 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
   const [avatarId, setAvatarId] = useState<number>(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Check for OTP in URL (email magic link)
+  // Check for OTP in URL (email magic link) - only run once on mount
+  // The AuthProvider's onAuthStateChange handles profile fetching
   useEffect(() => {
-    const handleAuthCallback = async () => {
-      const { data: { session: newSession } } = await supabase.auth.getSession()
-      if (newSession && !profile) {
-        // User just authenticated, refresh profile
-        await refreshProfile()
-      }
-    }
+    supabase.auth.getSession()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-    handleAuthCallback()
-  }, [profile, refreshProfile])
-
-  // If loading, show nothing
+  // If loading, show loading spinner
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">

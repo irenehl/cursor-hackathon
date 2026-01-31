@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface Event {
   id: string
@@ -16,6 +17,7 @@ interface Event {
 }
 
 export default function EventsPage() {
+  const router = useRouter()
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -59,14 +61,35 @@ export default function EventsPage() {
   return (
     <main className="flex min-h-screen flex-col p-8">
       <div className="max-w-6xl w-full mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Events</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold">Events</h1>
+          <div className="flex gap-4">
+            <Link
+              href="/"
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              ← Home
+            </Link>
+          </div>
+        </div>
         
         {error ? (
           <div className="text-red-500">
             Error loading events: {error}
           </div>
         ) : events.length === 0 ? (
-          <div className="text-gray-500">No events found.</div>
+          <div className="text-center py-12 border rounded-lg">
+            <p className="text-gray-500 mb-4">No events found.</p>
+            <p className="text-sm text-gray-400 mb-6">
+              Create a demo event to get started!
+            </p>
+            <Link
+              href="/"
+              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Create Event + Tickets
+            </Link>
+          </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {events.map((event) => (
