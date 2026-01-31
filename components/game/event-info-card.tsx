@@ -10,6 +10,8 @@ interface EventInfoCardProps {
   status: 'EN VIVO' | 'PRÓXIMAMENTE' | 'FINALIZADO'
   usersCount: number
   capacity: number
+  /** When true, no absolute positioning (for stacking) */
+  inline?: boolean
 }
 
 export function EventInfoCard({
@@ -18,10 +20,11 @@ export function EventInfoCard({
   status,
   usersCount,
   capacity,
+  inline,
 }: EventInfoCardProps) {
   return (
     <div
-      className="absolute bottom-4 left-4 bg-midnight/95 text-text-inverse p-3 rounded-lg border-2 border-teal font-mono text-sm"
+      className={`bg-midnight/95 text-text-inverse p-3 rounded-lg border-2 border-teal font-mono text-sm ${inline ? '' : 'absolute bottom-4 left-4'}`}
       style={{
         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
       }}

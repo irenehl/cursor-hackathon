@@ -14,6 +14,9 @@ import { PvpManager } from '@/game/entities/pvpManager'
 import { createPvpDuel, acceptPvpAndResolve, raiseHand, leaveSession, getSessionHost } from '@/lib/supabase/rpc'
 import { PvpUi } from '@/components/game/pvp-ui'
 import { HostOverlay } from '@/components/game/host-overlay'
+import { EventInfoCard } from '@/components/game/event-info-card'
+import { EventStatusBadge } from '@/components/game/event-status-badge'
+import { PlayersOnlineList } from '@/components/game/players-online-list'
 import { getAvatarPath, CharacterType } from '@/game/config/characters'
 
 export default function SessionPage() {
@@ -38,6 +41,14 @@ export default function SessionPage() {
   const [currentUserId, setCurrentUserId] = useState<string>('')
   const [presenceState, setPresenceState] = useState<Map<string, any>>(new Map())
   const [showFightOverlay, setShowFightOverlay] = useState(false)
+  const [pvpWinner, setPvpWinner] = useState<{ winnerName: string } | null>(null)
+  const [eventInfo, setEventInfo] = useState<{
+    title: string
+    capacity: number
+    starts_at: string
+    duration_minutes: number
+  } | null>(null)
+  const [sessionHostUserId, setSessionHostUserId] = useState<string | null>(null)
   const positionBroadcastIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const presenceUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const proximityCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -145,10 +156,10 @@ export default function SessionPage() {
           return
         }
 
-        // Verify access for private events
+        // Fetch event and verify access for private events
         const { data: eventData } = await supabase
           .from('events')
-          .select('visibility')
+          .select('visibility, title, capacity, starts_at, duration_minutes')
           .eq('id', eventId)
           .single()
 
@@ -157,8 +168,16 @@ export default function SessionPage() {
           return
         }
 
+        setEventInfo({
+          title: eventData.title,
+          capacity: eventData.capacity,
+          starts_at: eventData.starts_at,
+          duration_minutes: eventData.duration_minutes,
+        })
+
         // Session host = event host if in session, else first player by join time (will be set by poll)
         const sessionHost = await getSessionHost(eventId, sessionId)
+        setSessionHostUserId(sessionHost.host_user_id)
         setIsHost(sessionHost.host_user_id === user.id)
 
         // For private events, verify user has access (host or ticket holder)
@@ -440,11 +459,20 @@ export default function SessionPage() {
               loserId: payload.loserId,
             }
             pvpManager.handleDuelResolved(duel)
-            // Show fight brawl overlay
-            if (mounted) setShowFightOverlay(true)
+            // Show fight brawl overlay + KO winner
+            const winnerId = payload.winnerId
+            const winnerPresence = instanceChannel.getPresenceState().get(winnerId)
+            const winnerName = winnerPresence?.displayName || 'Ganador'
+            if (mounted) {
+              setShowFightOverlay(true)
+              setPvpWinner({ winnerName })
+            }
             setTimeout(() => {
               if (mounted) setShowFightOverlay(false)
             }, 3200)
+            setTimeout(() => {
+              if (mounted) setPvpWinner(null)
+            }, 4000)
             
             // Also update remote player states
             if (playerManagerRef.current) {
@@ -595,6 +623,7 @@ export default function SessionPage() {
           try {
             const sessionHost = await getSessionHost(eventId, sessionId)
             if (sessionHost.host_user_id) {
+              setSessionHostUserId(sessionHost.host_user_id)
               setIsHost(sessionHost.host_user_id === user.id)
             }
           } catch {
@@ -814,32 +843,37 @@ export default function SessionPage() {
         </button>
       </div>
 
-      {/* Players Online Overlay - Retro Terminal Style */}
-      <div 
-        className="absolute top-4 right-4 bg-midnight/90 border-2 border-teal text-text-inverse p-3 rounded-lg text-sm max-w-xs shadow-xl"
-        style={{
-          fontFamily: 'monospace',
-          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-        }}
-      >
-        <div className="font-semibold mb-2 text-cream uppercase tracking-wider text-xs">
-          Players Online ({playersOnline.length})
-        </div>
-        <div className="space-y-1 max-h-32 overflow-y-auto">
-          {playersOnline.length === 0 ? (
-            <div className="text-xs text-cream/70 italic">Just you here</div>
-          ) : (
-            playersOnline.map((player) => (
-              <div key={player.userId} className="text-xs text-cream font-mono">
-                • {player.displayName}
-              </div>
-            ))
-          )}
-        </div>
+      {/* Event Status + Players - Top Right */}
+      <div className="absolute top-4 right-4 flex flex-col gap-2">
+        {eventInfo && (
+          <EventStatusBadge
+            eventTitle={eventInfo.title}
+            countdown={null}
+            usersCount={playersOnline.length}
+            capacity={eventInfo.capacity}
+            inline
+          />
+        )}
+        <PlayersOnlineList
+          players={playersOnline}
+          statusMap={new Map()}
+          hostUserId={sessionHostUserId ?? undefined}
+          inline
+        />
       </div>
 
-      {/* Raise Hand Button - Retro Game Button Style */}
-      <div className="absolute bottom-4 left-4">
+      {/* Event Info + Raise Hand - Bottom Left */}
+      <div className="absolute bottom-4 left-4 flex flex-col gap-3">
+        {eventInfo && (
+          <EventInfoCard
+            eventTitle={eventInfo.title}
+            status="EN VIVO"
+            usersCount={playersOnline.length}
+            capacity={eventInfo.capacity}
+            inline
+          />
+        )}
+        <div>
         <button
           onClick={handleRaiseHand}
           disabled={handState !== 'idle'}
@@ -859,6 +893,7 @@ export default function SessionPage() {
           {handState === 'queued' && '⏳ In Queue...'}
           {handState === 'granted' && '✅ Turn Granted!'}
         </button>
+        </div>
       </div>
 
       {isHost && (
@@ -875,6 +910,7 @@ export default function SessionPage() {
         challengeReceived={challengeReceived}
         onAcceptChallenge={handleAcceptChallenge}
         onRejectChallenge={handleRejectChallenge}
+        pvpWinner={pvpWinner}
       />
 
       {/* Fight brawl overlay when PvP duel resolves */}

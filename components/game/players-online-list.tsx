@@ -15,6 +15,8 @@ interface PlayersOnlineListProps {
   players: Array<{ userId: string; displayName: string }>
   statusMap: Map<string, PlayerStatus>
   hostUserId?: string
+  /** When true, no absolute positioning (for stacking) */
+  inline?: boolean
 }
 
 function getStatusIcon(status: PlayerStatus): string {
@@ -29,10 +31,11 @@ export function PlayersOnlineList({
   players,
   statusMap,
   hostUserId,
+  inline,
 }: PlayersOnlineListProps) {
   return (
     <div
-      className="absolute top-4 right-4 bg-midnight/90 border-2 border-teal text-text-inverse p-3 rounded-lg text-sm max-w-xs shadow-xl"
+      className={`bg-midnight/90 border-2 border-teal text-text-inverse p-3 rounded-lg text-sm max-w-xs shadow-xl ${inline ? '' : 'absolute top-4 right-4'}`}
       style={{
         fontFamily: 'monospace',
         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',

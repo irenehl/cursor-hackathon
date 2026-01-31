@@ -10,6 +10,8 @@ interface EventStatusBadgeProps {
   countdown?: string | null // "00:34:12" or null if no countdown
   usersCount: number
   capacity: number
+  /** When true, no absolute positioning (for stacking) */
+  inline?: boolean
 }
 
 export function EventStatusBadge({
@@ -17,10 +19,11 @@ export function EventStatusBadge({
   countdown,
   usersCount,
   capacity,
+  inline,
 }: EventStatusBadgeProps) {
   return (
     <div
-      className="absolute top-4 right-4 bg-midnight/95 text-text-inverse px-4 py-2 rounded-lg border-2 border-teal font-mono text-sm"
+      className={`bg-midnight/95 text-text-inverse px-4 py-2 rounded-lg border-2 border-teal font-mono text-sm ${inline ? '' : 'absolute top-4 right-4'}`}
       style={{
         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
       }}

@@ -16,9 +16,9 @@ export default function Home() {
   const { user, profile, signOut } = useAuth()
   const [isCreatingEvent, setIsCreatingEvent] = useState(false)
   const [eventTitle, setEventTitle] = useState('')
-  const [eventDuration, setEventDuration] = useState(60)
-  const [eventCapacity, setEventCapacity] = useState(50)
-  const [ticketCount, setTicketCount] = useState(10)
+  const [eventDuration, setEventDuration] = useState('60')
+  const [eventCapacity, setEventCapacity] = useState('50')
+  const [ticketCount, setTicketCount] = useState('10')
   const [eventVisibility, setEventVisibility] = useState<'public' | 'private'>('public')
   
   // Check if user is anonymous (Supabase sets is_anonymous on the user object)
@@ -53,8 +53,8 @@ export default function Home() {
         .insert({
           title: eventTitle.trim(),
           starts_at: new Date().toISOString(),
-          duration_minutes: eventDuration,
-          capacity: eventCapacity,
+          duration_minutes: parseInt(eventDuration, 10) || 60,
+          capacity: parseInt(eventCapacity, 10) || 50,
           host_user_id: user.id,
           status: 'open',
           visibility: eventVisibility,
@@ -67,21 +67,22 @@ export default function Home() {
       // Generate ticket codes (optional for public events - 0 tickets = open to all)
       const ticketCodes: string[] = []
       const tickets = []
-      if (ticketCount > 0) {
-        for (let i = 0; i < ticketCount; i++) {
-          const code = `TICKET-${event.id.slice(0, 8)}-${i + 1}`
-          ticketCodes.push(code)
-          tickets.push({
-            code,
-            event_id: event.id,
-            is_public: eventVisibility === 'public',
-          })
-        }
-        const { error: ticketsError } = await supabase
-          .from('tickets')
-          .insert(tickets)
-        if (ticketsError) throw ticketsError
+      const parsedTicketCount = parseInt(ticketCount, 10) || 10
+      for (let i = 0; i < parsedTicketCount; i++) {
+        const code = `TICKET-${event.id.slice(0, 8)}-${i + 1}`
+        ticketCodes.push(code)
+        tickets.push({
+          code,
+          event_id: event.id,
+          is_public: eventVisibility === 'public',
+        })
       }
+
+      const { error: ticketsError } = await supabase
+        .from('tickets')
+        .insert(tickets)
+
+      if (ticketsError) throw ticketsError
 
       setCreatedEvent({
         eventId: event.id,
@@ -149,7 +150,7 @@ export default function Home() {
                     Browse Events
                   </h2>
                   <p className="text-text-muted text-sm sm:text-base">
-                    Step through the portal and discover what's happening in the 2D realm
+                    Step through the portal and discover what's happening in the 2D realm. View your hosted events and manage tickets.
                   </p>
                 </div>
                 <div className="text-xl text-text-muted">→</div>
@@ -186,33 +187,38 @@ export default function Home() {
                       {createdEvent.eventId}
                     </code>
                   </p>
-                  {createdEvent.ticketCodes.length > 0 && (
-                    <div className="mt-4">
-                      <p className="text-sm font-semibold mb-3 text-text">
-                        Distribute these golden tickets:
-                      </p>
-                      <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
-                        {createdEvent.ticketCodes.map((code) => (
-                          <TicketCode key={code} code={code} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {createdEvent.ticketCodes.length === 0 && eventVisibility === 'public' && (
-                    <p className="mt-4 text-sm text-text-muted">
-                      Evento público abierto a todos (sin tickets). Máx. {eventCapacity} personas.
+                  <div className="mt-4">
+                    <p className="text-sm font-semibold mb-3 text-text">
+                      Distribute these golden tickets:
                     </p>
-                  )}
-                  <Button
-                    onClick={() => {
-                      setCreatedEvent(null)
-                      router.push('/events')
-                    }}
-                    className="mt-4 w-full"
-                    variant="primary"
-                  >
-                    View Event
-                  </Button>
+                    <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                      {createdEvent.ticketCodes.map((code) => (
+                        <TicketCode key={code} code={code} />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      onClick={() => {
+                        setCreatedEvent(null)
+                        router.push(`/events/${createdEvent.eventId}/manage`)
+                      }}
+                      className="flex-1"
+                      variant="secondary"
+                    >
+                      Manage Tickets
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setCreatedEvent(null)
+                        router.push('/events')
+                      }}
+                      className="flex-1"
+                      variant="primary"
+                    >
+                      My Hosted Events
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -233,7 +239,7 @@ export default function Home() {
                     label="Duration (minutes)"
                     type="number"
                     value={eventDuration}
-                    onChange={(e) => setEventDuration(parseInt(e.target.value) || 60)}
+                    onChange={(e) => setEventDuration(e.target.value)}
                     min="1"
                     required
                   />
@@ -243,7 +249,7 @@ export default function Home() {
                     label="Capacity"
                     type="number"
                     value={eventCapacity}
-                    onChange={(e) => setEventCapacity(parseInt(e.target.value) || 50)}
+                    onChange={(e) => setEventCapacity(e.target.value)}
                     min="1"
                     required
                   />
@@ -295,8 +301,8 @@ export default function Home() {
                   label="Number of Tickets"
                   type="number"
                   value={ticketCount}
-                  onChange={(e) => setTicketCount(parseInt(e.target.value) || 0)}
-                  min="0"
+                  onChange={(e) => setTicketCount(e.target.value)}
+                  min="1"
                   max="100"
                   helperText={eventVisibility === 'public' 
                     ? '0 = evento abierto a todos (sin tickets). Máx 100 tickets.'
