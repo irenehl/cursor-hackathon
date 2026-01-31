@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { CHARACTERS, CharacterType, getAvatarPath } from '@/game/config/characters'
+import { saveMockProfileToStorage } from '@/lib/auth/mock-auth-context'
 
 interface OnboardingGateProps {
   children: React.ReactNode
@@ -29,7 +30,7 @@ const AVATAR_COLORS = [
 export function OnboardingGate({ children }: OnboardingGateProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, session, profile, loading, refreshProfile } = useAuth()
+  const { user, session, profile, loading, refreshProfile, isMockAuth } = useAuth()
   const [displayName, setDisplayName] = useState('')
   const [characterType, setCharacterType] = useState<CharacterType>('default')
   const [avatarId, setAvatarId] = useState<number>(1)
@@ -42,8 +43,21 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Bypass auth gate for landing page and auth page
-  if (pathname === '/' || pathname === '/auth') {
+  // Redirect to auth page if not authenticated (useEffect to avoid render-time navigation)
+  useEffect(() => {
+    // Bypass redirect for landing page, auth page, and waitlist page
+    if (pathname === '/' || pathname === '/auth' || pathname === '/waitlist') {
+      return
+    }
+
+    // Only redirect if we're done loading and user is not authenticated
+    if (!loading && (!user || !session)) {
+      router.push('/auth')
+    }
+  }, [loading, user, session, pathname, router])
+
+  // Bypass auth gate for landing page, auth page, and waitlist page
+  if (pathname === '/' || pathname === '/auth' || pathname === '/waitlist') {
     return <>{children}</>
   }
 
@@ -59,9 +73,8 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
     )
   }
 
-  // If not authenticated, redirect to auth page
+  // If not authenticated, show nothing while redirect happens
   if (!user || !session) {
-    router.push('/auth')
     return null
   }
 
@@ -83,33 +96,49 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
           <form
             onSubmit={async (e) => {
               e.preventDefault()
-              if (!displayName.trim()) {
+              if (!displayName.trim() || !user) {
                 toast.error('Please enter a display name')
                 return
               }
 
               setIsSubmitting(true)
-
-              const { error } = await supabase
-                .from('profiles')
-                .upsert(
-                  {
-                    user_id: user.id,
-                    display_name: displayName.trim(),
-                    avatar_id: avatarId,
-                    character_type: characterType,
-                  },
-                  { onConflict: 'user_id' }
-                )
-
-              setIsSubmitting(false)
-
-              if (error) {
-                toast.error(error.message || 'Failed to save profile')
-              } else {
+              
+              if (isMockAuth) {
+                // Save to localStorage for mock auth
+                const mockProfile = {
+                  user_id: user.id,
+                  display_name: displayName.trim(),
+                  avatar_id: avatarId,
+                  character_type: characterType,
+                }
+                saveMockProfileToStorage(mockProfile)
                 await refreshProfile()
                 toast.success('Profile saved! Welcome to the 2D realm.')
+              } else {
+                // Save to Supabase
+                const { error } = await supabase
+                  .from('profiles')
+                  .upsert(
+                    {
+                      user_id: user.id,
+                      display_name: displayName.trim(),
+                      avatar_id: avatarId,
+                      character_type: characterType,
+                    },
+                    {
+                      onConflict: 'user_id',
+                    }
+                  )
+
+                if (error) {
+                  toast.error(error.message || 'Failed to save profile')
+                } else {
+                  await refreshProfile()
+                  toast.success('Profile saved! Welcome to the 2D realm.')
+                }
               }
+
+              setIsSubmitting(false)
             }}
             className="space-y-6"
           >

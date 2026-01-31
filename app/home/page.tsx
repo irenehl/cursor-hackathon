@@ -13,7 +13,7 @@ import { TicketCode } from '@/components/ui/ticket-code'
 
 export default function Home() {
   const router = useRouter()
-  const { user, profile, signOut } = useAuth()
+  const { user, profile, signOut, isMockAuth } = useAuth()
   const [isCreatingEvent, setIsCreatingEvent] = useState(false)
   const [eventTitle, setEventTitle] = useState('')
   const [eventDuration, setEventDuration] = useState('60')
@@ -37,7 +37,7 @@ export default function Home() {
     setIsCreatingEvent(true)
     try {
       if (isAnonymous) {
-        toast.error('Please sign in with email to create events')
+        toast.error('Please sign in to create events')
         return
       }
 
@@ -55,7 +55,22 @@ export default function Home() {
         .select()
         .single()
 
-      if (eventError) throw eventError
+      if (eventError) {
+        // If using mock auth and we get a foreign key constraint error, provide helpful message
+        if (isMockAuth && (
+          eventError.code === '23503' || // Foreign key violation
+          eventError.message?.includes('foreign key') ||
+          eventError.message?.includes('violates foreign key constraint') ||
+          eventError.message?.includes('auth.users')
+        )) {
+          throw new Error(
+            'Cannot create event: The database foreign key constraint prevents mock user IDs. ' +
+            'Please run migration 0006_relax_host_user_fk.sql to temporarily remove the constraint. ' +
+            'Run: supabase migration up (or apply the migration through your Supabase dashboard)'
+          )
+        }
+        throw eventError
+      }
 
       const ticketCodes: string[] = []
       const tickets = []
@@ -84,7 +99,20 @@ export default function Home() {
       setEventTitle('')
     } catch (error: any) {
       console.error('Error creating event:', error)
-      toast.error(error.message || 'Failed to create event')
+      // Log more details about the error
+      if (error?.message) {
+        console.error('Error message:', error.message)
+      }
+      if (error?.code) {
+        console.error('Error code:', error.code)
+      }
+      if (error?.details) {
+        console.error('Error details:', error.details)
+      }
+      if (error?.hint) {
+        console.error('Error hint:', error.hint)
+      }
+      toast.error(error?.message || error?.details || 'Failed to create event')
     } finally {
       setIsCreatingEvent(false)
     }
@@ -158,7 +186,7 @@ export default function Home() {
               {isAnonymous && (
                 <div className="mt-3 p-3 bg-accent-muted/20 border border-accent rounded-lg">
                   <p className="text-sm text-text">
-                    <strong>Sign in with email</strong> to create and host events.
+                    <strong>Sign in</strong> to create and host events.
                   </p>
                 </div>
               )}

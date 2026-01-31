@@ -12,8 +12,9 @@ import Link from 'next/link'
 
 export default function AuthPage() {
   const router = useRouter()
-  const { user, session, profile, loading, signInWithEmail, signInAnonymously, refreshProfile } = useAuth()
+  const { user, session, profile, loading, signInWithEmail, signInAnonymously, refreshProfile, signInWithNickname, isMockAuth } = useAuth()
   const [email, setEmail] = useState('')
+  const [nickname, setNickname] = useState('')
   const [emailSent, setEmailSent] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -24,12 +25,13 @@ export default function AuthPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Redirect if already authenticated and has profile
+  // Redirect if already authenticated (with or without profile)
+  // Profile creation is handled by OnboardingGate
   useEffect(() => {
-    if (!loading && user && session && profile) {
+    if (!loading && user && session) {
       router.push('/home')
     }
-  }, [loading, user, session, profile, router])
+  }, [loading, user, session, router])
 
   // If loading, show loading spinner
   if (loading) {
@@ -43,14 +45,8 @@ export default function AuthPage() {
     )
   }
 
-  // If authenticated but no profile, redirect to home (profile creation handled by OnboardingGate)
-  if (user && session && !profile) {
-    router.push('/home')
-    return null
-  }
-
-  // If authenticated with profile, redirect to home
-  if (user && session && profile) {
+  // If authenticated, show nothing while redirect happens
+  if (user && session) {
     return null
   }
 
@@ -65,41 +61,74 @@ export default function AuthPage() {
           <p className="text-text-muted text-sm">
             Where professional events meet playful 2D avatars
           </p>
+          {isMockAuth && (
+            <p className="text-text-muted text-xs mt-2">
+              (Using offline mode - Supabase auth unavailable)
+            </p>
+          )}
         </div>
         
         {!emailSent ? (
           <div className="space-y-4">
-            <Input
-              id="email"
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-            />
+            {isMockAuth ? (
+              // Mock auth: Show nickname login instead of email
+              <>
+                <Input
+                  id="nickname"
+                  label="Your Nickname"
+                  type="text"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="Enter a unique nickname"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && nickname.trim()) {
+                      e.preventDefault()
+                      handleNicknameLogin()
+                    }
+                  }}
+                />
 
-            <Button
-              onClick={async () => {
-                if (!email) {
-                  toast.error('Please enter your email')
-                  return
-                }
-                setIsSubmitting(true)
-                const { error } = await signInWithEmail(email)
-                setIsSubmitting(false)
-                if (error) {
-                  toast.error(error.message || 'Failed to send magic link')
-                } else {
-                  setEmailSent(true)
-                  toast.success('Check your email for the magic link!')
-                }
-              }}
-              disabled={isSubmitting}
-              className="w-full"
-              variant="primary"
-            >
-              {isSubmitting ? 'Sending magic link...' : 'Send Magic Link'}
-            </Button>
+                <Button
+                  onClick={handleNicknameLogin}
+                  disabled={isSubmitting || !nickname.trim()}
+                  className="w-full"
+                  variant="primary"
+                >
+                  {isSubmitting ? 'Signing in...' : 'Continue with Nickname'}
+                </Button>
+
+                <p className="text-xs text-text-muted text-center">
+                  Your nickname will be used to identify you as the host/owner of events you create.
+                </p>
+              </>
+            ) : (
+              // Supabase auth: Show email magic link
+              <>
+                <Input
+                  id="email"
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && email.trim()) {
+                      e.preventDefault()
+                      handleEmailLogin()
+                    }
+                  }}
+                />
+
+                <Button
+                  onClick={handleEmailLogin}
+                  disabled={isSubmitting || !email.trim()}
+                  className="w-full"
+                  variant="primary"
+                >
+                  {isSubmitting ? 'Sending magic link...' : 'Send Magic Link'}
+                </Button>
+              </>
+            )}
 
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
@@ -158,4 +187,40 @@ export default function AuthPage() {
       </Card>
     </div>
   )
+
+  async function handleNicknameLogin() {
+    if (!nickname.trim() || !signInWithNickname) {
+      toast.error('Please enter a nickname')
+      return
+    }
+    
+    setIsSubmitting(true)
+    const { error } = await signInWithNickname(nickname.trim())
+    setIsSubmitting(false)
+    
+    if (error) {
+      toast.error(error.message || 'Failed to sign in')
+    } else {
+      toast.success('Signed in successfully!')
+      // Redirect will happen via useEffect when auth state updates
+    }
+  }
+
+  async function handleEmailLogin() {
+    if (!email.trim()) {
+      toast.error('Please enter your email')
+      return
+    }
+    
+    setIsSubmitting(true)
+    const { error } = await signInWithEmail(email)
+    setIsSubmitting(false)
+    
+    if (error) {
+      toast.error(error.message || 'Failed to send magic link')
+    } else {
+      setEmailSent(true)
+      toast.success('Check your email for the magic link!')
+    }
+  }
 }

@@ -328,9 +328,12 @@ export default function LandingPage() {
                 {t("tierFree3")}
               </li>
             </ul>
-            <button className='w-full py-3 rounded-lg border border-border-strong hover:bg-surface transition-colors font-medium text-text'>
+            <Link
+              href="/auth"
+              className='w-full py-3 rounded-lg border border-border-strong hover:bg-surface transition-colors font-medium text-text inline-block text-center'
+            >
               {t("tierFreeCta")}
-            </button>
+            </Link>
           </div>
 
           <div className='p-8 rounded-2xl bg-teal border border-teal shadow-xl relative transform md:-translate-y-4'>
@@ -364,9 +367,12 @@ export default function LandingPage() {
                 {t("tierBasic4")}
               </li>
             </ul>
-            <button className='w-full py-3 rounded-lg bg-accent text-text-inverse hover:bg-accent-hover transition-colors font-medium shadow-lg'>
+            <Link
+              href="/waitlist"
+              className='w-full py-3 rounded-lg bg-accent text-text-inverse hover:bg-accent-hover transition-colors font-medium shadow-lg inline-block text-center'
+            >
               {t("tierBasicCta")}
-            </button>
+            </Link>
           </div>
 
           <div className='p-8 rounded-2xl bg-plum border border-plum/80 relative overflow-hidden'>
@@ -400,9 +406,12 @@ export default function LandingPage() {
                 {t("tierPro4")}
               </li>
             </ul>
-            <button className='w-full py-3 rounded-lg bg-cream text-plum hover:bg-white transition-colors font-medium'>
+            <Link
+              href="/waitlist"
+              className='w-full py-3 rounded-lg bg-cream text-plum hover:bg-white transition-colors font-medium inline-block text-center'
+            >
               {t("tierProCta")}
-            </button>
+            </Link>
           </div>
         </div>
       </section>
